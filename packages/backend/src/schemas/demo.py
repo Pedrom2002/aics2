@@ -78,6 +78,10 @@ class PlayerMatchStatsResponse(BaseModel):
     utility_damage: int
     first_kills: int
     first_deaths: int
+    trade_kills: int
+    trade_deaths: int
+    kast_rounds: int
+    rounds_survived: int
     clutch_wins: int
     multi_kills_3k: int
     multi_kills_4k: int

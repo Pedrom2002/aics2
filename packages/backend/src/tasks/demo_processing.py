@@ -38,9 +38,7 @@ async def _update_demo_status(demo_id: str, status: str, error_message: str | No
         elif status in ("failed", "error"):
             values["error_message"] = error_message
 
-        result = await session.execute(
-            update(Demo).where(Demo.id == demo_uuid).values(**values)
-        )
+        result = await session.execute(update(Demo).where(Demo.id == demo_uuid).values(**values))
         await session.commit()
 
         if result.rowcount == 0:
@@ -124,6 +122,10 @@ async def _store_match_data(demo_id: str, org_id: uuid.UUID, parsed) -> str:
                     bomb_planted=rd.bomb_planted,
                     bomb_defused=rd.bomb_defused,
                     plant_site=rd.plant_site,
+                    t_equipment_value=rd.t_equipment_value,
+                    ct_equipment_value=rd.ct_equipment_value,
+                    t_buy_type=rd.t_buy_type,
+                    ct_buy_type=rd.ct_buy_type,
                     start_tick=rd.start_tick,
                     end_tick=rd.end_tick,
                     duration_seconds=rd.duration_seconds,
@@ -150,6 +152,14 @@ async def _store_match_data(demo_id: str, org_id: uuid.UUID, parsed) -> str:
                     utility_damage=player.utility_damage,
                     first_kills=player.first_kills,
                     first_deaths=player.first_deaths,
+                    multi_kills_3k=player.multi_kills_3k,
+                    multi_kills_4k=player.multi_kills_4k,
+                    multi_kills_5k=player.multi_kills_5k,
+                    clutch_wins=player.clutch_wins,
+                    trade_kills=player.trade_kills,
+                    trade_deaths=player.trade_deaths,
+                    kast_rounds=player.kast_rounds,
+                    rounds_survived=player.rounds_survived,
                 )
             )
 
@@ -163,6 +173,56 @@ async def _store_match_data(demo_id: str, org_id: uuid.UUID, parsed) -> str:
             len(parsed.players),
         )
         return str(match_id)
+
+
+async def _compute_and_store_ratings(match_id: str, parsed) -> None:
+    """Compute feature-based ratings and store them on PlayerMatchStats."""
+    from sqlalchemy import update
+
+    from src.database import _get_engine, _get_session_factory
+    from src.models.player_match_stats import PlayerMatchStats
+    from src.services.feature_engine import compute_match_features
+
+    _get_engine()
+    match_uuid = _to_uuid(match_id)
+
+    async with _get_session_factory()() as session:
+        for player in parsed.players:
+            features = compute_match_features(
+                player_steam_id=player.steam_id,
+                player_name=player.name,
+                match_id=match_id,
+                kills=player.kills,
+                deaths=player.deaths,
+                assists=player.assists,
+                headshot_kills=player.headshot_kills,
+                damage=player.damage,
+                total_rounds=parsed.total_rounds,
+                flash_assists=player.flash_assists,
+                utility_damage=player.utility_damage,
+                first_kills=player.first_kills,
+                first_deaths=player.first_deaths,
+                trade_kills=player.trade_kills,
+                trade_deaths=player.trade_deaths,
+                clutch_wins=player.clutch_wins,
+                multi_kills_3k=player.multi_kills_3k,
+                multi_kills_4k=player.multi_kills_4k,
+                multi_kills_5k=player.multi_kills_5k,
+                kast_rounds=player.kast_rounds,
+                rounds_survived=player.rounds_survived,
+            )
+
+            await session.execute(
+                update(PlayerMatchStats)
+                .where(
+                    PlayerMatchStats.match_id == match_uuid,
+                    PlayerMatchStats.player_steam_id == player.steam_id,
+                )
+                .values(overall_rating=features.hltv_rating_approx)
+            )
+
+        await session.commit()
+        logger.info("Computed ratings for match %s (%d players)", match_id, len(parsed.players))
 
 
 @celery_app.task(bind=True, max_retries=3, name="src.tasks.demo_processing.process_demo")
@@ -223,7 +283,10 @@ def process_demo(self, demo_id: str, s3_key: str):
         asyncio.run(_update_demo_status(demo_id, "extracting_features"))
         match_id = asyncio.run(_store_match_data(demo_id, org_id, parsed))
 
-        # Step 4: Mark as completed
+        # Step 4: Compute and store feature ratings
+        asyncio.run(_compute_and_store_ratings(match_id, parsed))
+
+        # Step 5: Mark as completed
         asyncio.run(_update_demo_status(demo_id, "completed"))
         logger.info("Demo %s processing completed (match %s)", demo_id, match_id)
 

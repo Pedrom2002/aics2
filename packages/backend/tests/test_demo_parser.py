@@ -72,9 +72,7 @@ def _make_mock_dem():
         }
     )
 
-    mock_dem.ticks = pl.DataFrame(
-        {"tick": [], "steamid": [], "name": [], "round_num": []}
-    )
+    mock_dem.ticks = pl.DataFrame({"tick": [], "steamid": [], "name": [], "round_num": []})
 
     return mock_dem
 

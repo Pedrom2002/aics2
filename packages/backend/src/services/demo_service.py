@@ -121,9 +121,28 @@ async def get_demo(db: AsyncSession, demo_id: uuid.UUID, org_id: uuid.UUID) -> D
     return demo
 
 
-async def get_match_detail(
-    db: AsyncSession, match_id: uuid.UUID, org_id: uuid.UUID
-) -> Match:
+async def delete_demo(db: AsyncSession, demo_id: uuid.UUID, org_id: uuid.UUID) -> None:
+    """Delete a demo and its associated match data (cascade)."""
+    query = select(Demo).where(Demo.id == demo_id, Demo.org_id == org_id)
+    result = await db.execute(query)
+    demo = result.scalar_one_or_none()
+
+    if not demo:
+        raise HTTPException(status_code=404, detail="Demo not found")
+
+    # Try to delete from S3/MinIO (best effort)
+    try:
+        from src.services.storage_service import delete_from_minio
+
+        await delete_from_minio(demo.s3_key)
+    except Exception:
+        pass  # Don't fail the delete if S3 cleanup fails
+
+    await db.delete(demo)
+    await db.commit()
+
+
+async def get_match_detail(db: AsyncSession, match_id: uuid.UUID, org_id: uuid.UUID) -> Match:
     """Get match with rounds and player stats."""
     query = (
         select(Match)

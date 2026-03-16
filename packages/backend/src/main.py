@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.exceptions import http_exception_handler, validation_exception_handler
-from src.routers import auth, beta, demos, health
+from src.routers import auth, beta, demos, health, players
 
 
 @asynccontextmanager
@@ -46,3 +46,4 @@ app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(beta.router, prefix="/api/v1")
 app.include_router(demos.router, prefix="/api/v1")
+app.include_router(players.router, prefix="/api/v1")

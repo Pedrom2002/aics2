@@ -15,7 +15,9 @@ import {
   Users,
   Zap,
 } from 'lucide-react'
+import Link from 'next/link'
 import { api, ApiError } from '@/lib/api-client'
+import { EconomyChart } from '@/components/matches/economy-chart'
 import type { MatchDetail, PlayerStats } from '@/types/demo'
 
 function formatDuration(seconds: number | null): string {
@@ -43,7 +45,14 @@ function PlayerRow({ player }: { player: PlayerStats }) {
 
   return (
     <tr className="border-b border-border last:border-0 hover:bg-bg-elevated/50 transition-colors">
-      <td className="px-4 py-2.5 font-medium">{player.player_name}</td>
+      <td className="px-4 py-2.5 font-medium">
+        <Link
+          href={`/dashboard/players/${player.player_steam_id}`}
+          className="hover:text-primary transition-colors"
+        >
+          {player.player_name}
+        </Link>
+      </td>
       <td className="px-4 py-2.5 text-center">{player.kills}</td>
       <td className="px-4 py-2.5 text-center">{player.assists}</td>
       <td className="px-4 py-2.5 text-center">{player.deaths}</td>
@@ -211,6 +220,9 @@ export default function MatchDetailPage() {
           </div>
         </div>
       ))}
+
+      {/* Economy Chart */}
+      <EconomyChart matchId={matchId} />
 
       {/* Round Timeline */}
       {match.rounds.length > 0 && (

@@ -160,8 +160,6 @@ async def test_beta_signup(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_beta_signup_duplicate(client: AsyncClient):
     await client.post("/api/v1/beta/signup", json={"email": "betadup@test.com"})
-    response = await client.post(
-        "/api/v1/beta/signup", json={"email": "betadup@test.com"}
-    )
+    response = await client.post("/api/v1/beta/signup", json={"email": "betadup@test.com"})
     assert response.status_code == 201
     assert "already" in response.json()["message"]

@@ -75,6 +75,10 @@ export interface PlayerStats {
   utility_damage: number
   first_kills: number
   first_deaths: number
+  trade_kills: number
+  trade_deaths: number
+  kast_rounds: number
+  rounds_survived: number
   clutch_wins: number
   multi_kills_3k: number
   multi_kills_4k: number
@@ -93,6 +97,63 @@ export interface MatchDetail extends MatchSummary {
   overtime_rounds: number
   rounds: RoundData[]
   player_stats: PlayerStats[]
+}
+
+export interface PlayerAggregatedStats {
+  player_steam_id: string
+  player_name: string
+  total_matches: number
+  total_rounds: number
+  total_kills: number
+  total_deaths: number
+  total_assists: number
+  total_headshot_kills: number
+  total_damage: number
+  total_flash_assists: number
+  total_utility_damage: number
+  total_first_kills: number
+  total_first_deaths: number
+  total_trade_kills: number
+  total_trade_deaths: number
+  total_clutch_wins: number
+  total_multi_kills_3k: number
+  total_multi_kills_4k: number
+  total_multi_kills_5k: number
+  total_kast_rounds: number
+  total_rounds_survived: number
+  avg_kills_per_round: number
+  avg_deaths_per_round: number
+  avg_kd_ratio: number
+  avg_headshot_pct: number
+  avg_adr: number
+  avg_kast_pct: number
+  avg_survival_rate: number
+  avg_opening_duel_win_rate: number
+  avg_trade_kill_rate: number
+  avg_impact_rating: number
+  avg_hltv_rating: number
+  rating_std_deviation: number
+  maps_played: Record<string, number>
+  best_map: string | null
+  worst_map: string | null
+}
+
+export interface MatchEconomyRound {
+  round_number: number
+  winner_side: string | null
+  t_equipment_value: number | null
+  ct_equipment_value: number | null
+  t_buy_type: string | null
+  ct_buy_type: string | null
+  team1_score: number
+  team2_score: number
+}
+
+export interface MatchEconomy {
+  match_id: string
+  map: string
+  total_rounds: number
+  rounds: MatchEconomyRound[]
 }
 
 export interface PaginatedResponse<T> {

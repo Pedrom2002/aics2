@@ -22,9 +22,7 @@ class User(UUIDMixin, TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[str] = mapped_column(
-        String(20), nullable=False, server_default="viewer"
-    )
+    role: Mapped[str] = mapped_column(String(20), nullable=False, server_default="viewer")
     steam_id: Mapped[str | None] = mapped_column(String(50), index=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")

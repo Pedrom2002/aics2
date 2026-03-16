@@ -76,6 +76,20 @@ async def get_demo(
     )
 
 
+@router.delete("/{demo_id}", status_code=204)
+async def delete_demo(
+    demo_id: uuid.UUID,
+    current_user: TokenPayload = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a demo and its associated match data."""
+    await demo_service.delete_demo(
+        db=db,
+        demo_id=demo_id,
+        org_id=uuid.UUID(current_user.org_id),
+    )
+
+
 @router.get("/matches/{match_id}", response_model=MatchDetailResponse)
 async def get_match(
     match_id: uuid.UUID,

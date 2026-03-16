@@ -12,9 +12,7 @@ from src.models import Base
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-TestSessionLocal = async_sessionmaker(
-    bind=test_engine, class_=AsyncSession, expire_on_commit=False
-)
+TestSessionLocal = async_sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 @pytest.fixture(scope="session")

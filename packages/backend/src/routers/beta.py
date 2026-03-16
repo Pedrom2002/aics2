@@ -12,9 +12,7 @@ router = APIRouter(prefix="/beta", tags=["beta"])
 @router.post("/signup", response_model=BetaSignupResponse, status_code=201)
 async def beta_signup(body: BetaSignupRequest, db: AsyncSession = Depends(get_db)):
     # Check for existing signup
-    existing = await db.execute(
-        select(BetaSignup).where(BetaSignup.email == body.email)
-    )
+    existing = await db.execute(select(BetaSignup).where(BetaSignup.email == body.email))
     if existing.scalar_one_or_none():
         return BetaSignupResponse(message="You're already on the list!")
 

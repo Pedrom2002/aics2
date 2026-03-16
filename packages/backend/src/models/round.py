@@ -32,7 +32,9 @@ class Round(UUIDMixin, Base):
 
     # Result
     winner_side: Mapped[str | None] = mapped_column(String(5))  # 'T' or 'CT'
-    win_reason: Mapped[str | None] = mapped_column(String(30))  # bomb_exploded, defuse, elimination, time
+    win_reason: Mapped[str | None] = mapped_column(
+        String(30)
+    )  # bomb_exploded, defuse, elimination, time
 
     # Scores at end of round
     team1_score: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")

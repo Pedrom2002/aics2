@@ -52,6 +52,7 @@ coverage.xml
 # Type checking
 .mypy_cache/
 .ruff_cache/
+*.tsbuildinfo
 
 # Docker volumes
 pgdata/

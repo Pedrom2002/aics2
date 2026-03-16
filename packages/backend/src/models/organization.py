@@ -19,9 +19,7 @@ class Organization(UUIDMixin, TimestampMixin, Base):
         nullable=False,
         server_default="free",
     )
-    max_demos_per_month: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default="10"
-    )
+    max_demos_per_month: Mapped[int] = mapped_column(Integer, nullable=False, server_default="10")
     logo_url: Mapped[str | None] = mapped_column(String(500))
 
     # Relationships

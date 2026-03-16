@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, EmailStr, Field
 
 from src.schemas.organization import OrgResponse

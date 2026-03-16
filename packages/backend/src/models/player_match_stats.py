@@ -55,6 +55,14 @@ class PlayerMatchStats(UUIDMixin, Base):
     first_kills: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     first_deaths: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
 
+    # Trade kills
+    trade_kills: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    trade_deaths: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+
+    # KAST & survival
+    kast_rounds: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    rounds_survived: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+
     # AI-computed ratings (filled after ML pipeline runs)
     overall_rating: Mapped[float | None] = mapped_column(Float)
     aim_rating: Mapped[float | None] = mapped_column(Float)

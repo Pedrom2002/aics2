@@ -129,9 +129,7 @@ async def login(db: AsyncSession, email: str, password: str) -> AuthResponse:
     user.last_login_at = datetime.now(UTC)
 
     # Load organization
-    org_result = await db.execute(
-        select(Organization).where(Organization.id == user.org_id)
-    )
+    org_result = await db.execute(select(Organization).where(Organization.id == user.org_id))
     org = org_result.scalar_one()
 
     # Generate tokens
@@ -157,9 +155,7 @@ async def refresh(db: AsyncSession, refresh_token_value: str) -> TokenResponse:
     from fastapi import HTTPException
 
     token_hash = _hash_token(refresh_token_value)
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-    )
+    result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     token = result.scalar_one_or_none()
 
     if not token:
@@ -197,9 +193,7 @@ async def refresh(db: AsyncSession, refresh_token_value: str) -> TokenResponse:
 
 async def logout(db: AsyncSession, refresh_token_value: str) -> None:
     token_hash = _hash_token(refresh_token_value)
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-    )
+    result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     token = result.scalar_one_or_none()
     if token:
         await db.delete(token)

@@ -70,21 +70,26 @@ async def download_from_minio(s3_key: str) -> bytes:
             response.raise_for_status()
             return response.content
     except httpx.TimeoutException as exc:
-        raise HTTPException(
-            status_code=504, detail="Storage service timeout."
-        ) from exc
+        raise HTTPException(status_code=504, detail="Storage service timeout.") from exc
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 404:
-            raise HTTPException(
-                status_code=404, detail="Demo file not found in storage."
-            ) from exc
-        raise HTTPException(
-            status_code=502, detail="Storage service error."
-        ) from exc
+            raise HTTPException(status_code=404, detail="Demo file not found in storage.") from exc
+        raise HTTPException(status_code=502, detail="Storage service error.") from exc
     except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=502, detail="Failed to connect to storage service."
         ) from exc
+
+
+async def delete_from_minio(s3_key: str) -> None:
+    """Delete a file from MinIO."""
+    url = f"{settings.MINIO_ENDPOINT}/{settings.MINIO_BUCKET}/{s3_key}"
+    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
+        response = await client.delete(
+            url,
+            auth=(settings.MINIO_ACCESS_KEY, settings.MINIO_SECRET_KEY),
+        )
+        response.raise_for_status()
 
 
 async def get_download_url(s3_key: str) -> str:
