@@ -75,6 +75,10 @@ class ParsedDemo:
     overtime_rounds: int
     rounds: list[RoundData] = field(default_factory=list)
     players: list[PlayerData] = field(default_factory=list)
+    # Raw data for ML pipeline (populated during parsing)
+    raw_kills: list[dict] = field(default_factory=list)
+    raw_ticks: list[dict] = field(default_factory=list)
+    trade_kill_victim_sids: set[str] = field(default_factory=set)
 
 
 def _classify_win_reason(reason: str | None) -> str | None:
@@ -582,6 +586,28 @@ def parse_demo(dem_path: str | Path, _demo_cls=None) -> ParsedDemo:
     if rounds and rounds[-1].end_tick and rounds[0].start_tick:
         total_duration = round((rounds[-1].end_tick - rounds[0].start_tick) / 64.0, 1)
 
+    # Collect raw data for ML pipeline
+    raw_kills: list[dict] = []
+    if kills_df is not None and len(kills_df) > 0:
+        for row in kills_df.iter_rows(named=True):
+            raw_kills.append(dict(row))
+
+    raw_ticks: list[dict] = []
+    if ticks_df is not None and len(ticks_df) > 0:
+        try:
+            # Sample ticks to avoid excessive memory (every 16th tick ≈ 4/sec)
+            sampled = ticks_df.gather_every(16)
+            for row in sampled.iter_rows(named=True):
+                raw_ticks.append(dict(row))
+        except Exception:
+            logger.debug("Could not sample ticks for ML pipeline")
+
+    # Collect trade kill victims for labeling
+    trade_victim_sids: set[str] = set()
+    for sid, count in advanced["trade_deaths"].items():
+        if count > 0:
+            trade_victim_sids.add(sid)
+
     return ParsedDemo(
         map_name=map_name,
         tickrate=64,
@@ -594,4 +620,7 @@ def parse_demo(dem_path: str | Path, _demo_cls=None) -> ParsedDemo:
         overtime_rounds=overtime_rounds,
         rounds=rounds,
         players=players,
+        raw_kills=raw_kills,
+        raw_ticks=raw_ticks,
+        trade_kill_victim_sids=trade_victim_sids,
     )
