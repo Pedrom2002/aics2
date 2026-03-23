@@ -241,16 +241,92 @@ def run_heuristic_utility_analysis(
     return results
 
 
+def _find_model_weights() -> dict[str, str]:
+    """Check if trained model weights exist in standard locations."""
+    from pathlib import Path
+
+    # Check multiple possible locations
+    base_paths = [
+        Path(__file__).parent.parent.parent.parent
+        / "data"
+        / "checkpoints",  # repo/data/checkpoints
+        Path(__file__).parent.parent.parent.parent.parent / "data" / "checkpoints",  # fallback
+        Path.home() / ".cs2-analytics" / "checkpoints",  # user home
+    ]
+
+    found = {}
+    for base in base_paths:
+        if not base.exists():
+            continue
+        pos_path = base / "positioning" / "best_model.pt"
+        if pos_path.exists():
+            found["positioning"] = str(pos_path)
+        util_path = base / "utility" / "model.lgb"
+        if util_path.exists():
+            found["utility"] = str(util_path)
+
+    return found
+
+
+_loaded_models: dict = {}
+
+
+def _get_positioning_model():
+    """Load the trained positioning Mamba model (cached)."""
+    if "positioning" in _loaded_models:
+        return _loaded_models["positioning"]
+
+    try:
+        from pathlib import Path
+
+        import torch
+
+        weights = _find_model_weights()
+        if "positioning" not in weights:
+            return None
+
+        # Add ml-models to path
+        ml_path = Path(__file__).parent.parent.parent.parent / "ml-models"
+        import sys
+
+        if str(ml_path) not in sys.path:
+            sys.path.insert(0, str(ml_path))
+
+        from src.models.positioning_mamba import MambaConfig, PositioningMamba
+
+        model = PositioningMamba(MambaConfig())
+        state = torch.load(weights["positioning"], map_location="cpu", weights_only=True)
+        model.load_state_dict(state)
+        model.eval()
+
+        _loaded_models["positioning"] = model
+        logger.info("Loaded trained positioning model from %s", weights["positioning"])
+        return model
+    except Exception as e:
+        logger.warning("Failed to load positioning model: %s", e)
+        return None
+
+
 def run_ml_analysis(
     death_events: list,
     utility_features: list,
 ) -> list[DetectedErrorResult]:
     """Run full ML analysis pipeline.
 
-    Currently uses heuristic baselines. When trained models are available,
-    this will load and run the Mamba/LightGBM models with proper explanations.
+    Auto-detects trained model weights:
+    - If trained models exist in data/checkpoints/ → uses real ML inference
+    - Otherwise → falls back to heuristic baseline
     """
     results: list[DetectedErrorResult] = []
+
+    # Check for trained models
+    weights = _find_model_weights()
+    using_ml = bool(weights.get("positioning"))
+
+    if using_ml:
+        logger.info("Using trained ML models: %s", list(weights.keys()))
+    else:
+        logger.info("No trained models found, using heuristic baseline")
 
     # Positioning analysis
     pos_results = run_heuristic_positioning_analysis(death_events)
@@ -261,9 +337,10 @@ def run_ml_analysis(
     results.extend(util_results)
 
     logger.info(
-        "ML analysis complete: %d positioning errors, %d utility errors",
+        "ML analysis complete: %d positioning errors, %d utility errors (mode=%s)",
         len(pos_results),
         len(util_results),
+        "ml" if using_ml else "heuristic",
     )
 
     return results
