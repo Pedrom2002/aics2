@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'team' | 'billing'>('general')
   const [orgName, setOrgName] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
-  const [currentTier, setCurrentTier] = useState('free')
+  const [currentTier] = useState('free')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
