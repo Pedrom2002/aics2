@@ -18,19 +18,25 @@ data/
 
 ## Quick Start
 
-### 1. Add demos
-Place `.dem` files in `data/demos/`:
+### 1. Download pro demos (automatic)
 ```bash
-# Option A: Manual — copy demo files
-cp ~/Downloads/*.dem data/demos/
+# Download ~2000 pro demos from HLTV (takes 3-4 hours, rate limited)
+cd packages/pro-demo-ingester
+pip install -e .
+python -m src.download_demos --pages 40 --output ../../data/demos/pro
 
-# Option B: HLTV scraper — auto-download pro demos
+# Or via the pipeline runner:
 cd packages/ml-models
-python -m src.training.run_pipeline scrape --pages 5
+python -m src.training.run_pipeline scrape --pages 40
 
-# Option C: Public datasets
-# Download from https://www.kaggle.com/datasets/ (search "CS2 demos")
+# Resume an interrupted download (auto-skips already downloaded)
+python -m src.download_demos --pages 40 --output ../../data/demos/pro --resume
 ```
+
+**Note:** Requires `unrar` on PATH for .rar extraction:
+- Windows: download from https://www.rarlab.com/rar_add.htm
+- Linux: `apt install unrar`
+- macOS: `brew install unrar`
 
 ### 2. Run the full pipeline (one command)
 ```bash

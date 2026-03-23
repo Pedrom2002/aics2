@@ -166,34 +166,21 @@ def cmd_synthetic(args):
 
 
 def cmd_scrape(args):
-    """Scrape demos from HLTV."""
+    """Scrape and download demos from HLTV (full automatic)."""
+    import asyncio
+
     # Add pro-demo-ingester to path
     ingester_path = Path(__file__).parent.parent.parent.parent / "pro-demo-ingester"
     if str(ingester_path) not in sys.path:
         sys.path.insert(0, str(ingester_path))
 
-    import asyncio
+    from src.download_demos import HLTVDemoDownloader
 
-    from src.scrapers.hltv import HLTVScraper
+    output = Path(args.output) if args.output else DEFAULT_BASE / "demos" / "pro"
 
     async def _run():
-        scraper = HLTVScraper()
-        matches = await scraper.get_recent_matches(pages=args.pages)
-        print(f"Found {len(matches)} matches across {args.pages} pages")
-
-        output = Path(args.output) if args.output else DEFAULT_BASE / "demos" / "pro"
-        output.mkdir(parents=True, exist_ok=True)
-
-        downloaded = 0
-        for match in matches:
-            demo_url = await scraper.get_demo_url(match.match_id)
-            if demo_url:
-                print(f"  [{downloaded + 1}] {match.team1_name} vs {match.team2_name} — {demo_url[:80]}...")
-                # Download would go here in production
-                downloaded += 1
-
-        print(f"\nFound {downloaded} demos available for download out of {len(matches)} matches")
-        return downloaded
+        downloader = HLTVDemoDownloader(output_dir=output, resume=True)
+        await downloader.run(pages=args.pages)
 
     asyncio.run(_run())
 
@@ -240,7 +227,7 @@ Examples:
   # Full pipeline with synthetic data (for testing)
   python -m src.training.run_pipeline all --count 2000
 
-  # Scrape HLTV for demo URLs
+  # Download 2000 pro demos from HLTV (automatic)
   python -m src.training.run_pipeline scrape --pages 40
 
   # Train only positioning model
@@ -287,10 +274,10 @@ Examples:
     p_synth.add_argument("--output-dir", type=Path)
     p_synth.add_argument("--count", type=int, default=2000)
 
-    # scrape
-    p_scrape = sub.add_parser("scrape", help="Scrape demo URLs from HLTV")
-    p_scrape.add_argument("--pages", type=int, default=5)
-    p_scrape.add_argument("--output", type=str)
+    # scrape (download demos)
+    p_scrape = sub.add_parser("scrape", help="Download pro demos from HLTV (automatic)")
+    p_scrape.add_argument("--pages", type=int, default=40, help="Pages to scrape (50 matches/page, 40=~2000)")
+    p_scrape.add_argument("--output", type=str, help="Output dir for .dem files")
 
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
