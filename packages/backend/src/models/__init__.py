@@ -11,6 +11,7 @@ from src.models.invitation import Invitation
 from src.models.match import Match
 from src.models.organization import Organization
 from src.models.player_match_stats import PlayerMatchStats
+from src.models.pro_match import ProMatch
 from src.models.refresh_token import RefreshToken
 from src.models.round import Round
 from src.models.team import Team
@@ -29,6 +30,7 @@ __all__ = [
     "Match",
     "MatchStrategy",
     "Organization",
+    "ProMatch",
     "PlayerMatchStats",
     "RefreshToken",
     "Round",

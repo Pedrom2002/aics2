@@ -18,6 +18,8 @@ import {
 import Link from 'next/link'
 import { api, ApiError } from '@/lib/api-client'
 import { EconomyChart } from '@/components/matches/economy-chart'
+import { Heatmap } from '@/components/matches/heatmap'
+import { ReplayViewer } from '@/components/matches/replay-viewer'
 import type { MatchDetail, PlayerStats } from '@/types/demo'
 
 function formatDuration(seconds: number | null): string {
@@ -223,6 +225,12 @@ export default function MatchDetailPage() {
 
       {/* Economy Chart */}
       <EconomyChart matchId={matchId} />
+
+      {/* Heatmap */}
+      <Heatmap matchId={matchId} />
+
+      {/* 2D Replay */}
+      <ReplayViewer matchId={matchId} />
 
       {/* Round Timeline */}
       {match.rounds.length > 0 && (
