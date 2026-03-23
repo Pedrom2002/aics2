@@ -1,12 +1,24 @@
 [project]
 name = "cs2-ml-models"
 version = "0.1.0"
-description = "AI CS2 Analytics — ML Models"
+description = "AI CS2 Analytics — ML Models for error detection, strategy classification, and player rating"
 requires-python = ">=3.12"
 dependencies = [
     "torch>=2.2.0",
     "scikit-learn>=1.5.0",
     "numpy>=1.26.0",
+    "lightgbm>=4.0.0",
+    "captum>=0.7.0",
+    "shap>=0.45.0",
+]
+
+[project.optional-dependencies]
+training = [
+    "mlflow>=2.10.0",
+    "matplotlib>=3.8.0",
+]
+graph = [
+    "torch-geometric>=2.5.0",
 ]
 
 [build-system]

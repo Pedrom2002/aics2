@@ -175,6 +175,87 @@ async def _store_match_data(demo_id: str, org_id: uuid.UUID, parsed) -> str:
         return str(match_id)
 
 
+async def _run_ml_pipeline(match_id: str, org_id: uuid.UUID, parsed) -> int:
+    """Run ML error detection pipeline on parsed demo data.
+
+    Returns number of errors detected.
+    """
+    from src.database import _get_engine, _get_session_factory
+    from src.models.detected_error import DetectedError, ErrorExplanation, ErrorRecommendation
+    from src.services.ml_feature_extractor import label_positioning_from_parsed_data
+    from src.services.ml_inference import run_ml_analysis
+
+    # Extract death events for positioning analysis
+    death_events = label_positioning_from_parsed_data(
+        kills_df_rows=parsed.raw_kills,
+        ticks_df_rows=parsed.raw_ticks,
+        trade_kill_sids=parsed.trade_kill_victim_sids,
+        total_rounds=parsed.total_rounds,
+    )
+
+    # Run ML analysis (heuristic baseline for now)
+    results = run_ml_analysis(
+        death_events=death_events,
+        utility_features=[],  # TODO: extract grenade events when available in awpy
+    )
+
+    if not results:
+        return 0
+
+    # Store results in database
+    _get_engine()
+    match_uuid = _to_uuid(match_id)
+
+    async with _get_session_factory()() as session:
+        for r in results:
+            error = DetectedError(
+                match_id=match_uuid,
+                org_id=org_id,
+                player_steam_id=r.player_steam_id,
+                round_number=r.round_number,
+                error_type=r.error_type,
+                severity=r.severity,
+                confidence=r.confidence,
+                tick=r.tick,
+                position_x=r.position_x,
+                position_y=r.position_y,
+                position_z=r.position_z,
+                description=r.description,
+                model_name=r.model_name,
+                model_version=r.model_version,
+            )
+            session.add(error)
+            await session.flush()
+
+            # Add explanation
+            session.add(
+                ErrorExplanation(
+                    error_id=error.id,
+                    feature_importances=r.feature_importances_json,
+                    method=r.explanation_method,
+                    explanation_text=r.explanation_text,
+                )
+            )
+
+            # Add recommendation
+            session.add(
+                ErrorRecommendation(
+                    error_id=error.id,
+                    title=r.rec_title,
+                    description=r.rec_description,
+                    priority=r.rec_priority,
+                    template_id=r.rec_template_id,
+                    expected_impact=r.rec_expected_impact,
+                    pro_reference=r.rec_pro_reference,
+                )
+            )
+
+        await session.commit()
+
+    logger.info("ML pipeline: stored %d errors for match %s", len(results), match_id)
+    return len(results)
+
+
 async def _compute_and_store_ratings(match_id: str, parsed) -> None:
     """Compute feature-based ratings and store them on PlayerMatchStats."""
     from sqlalchemy import update
@@ -286,7 +367,12 @@ def process_demo(self, demo_id: str, s3_key: str):
         # Step 4: Compute and store feature ratings
         asyncio.run(_compute_and_store_ratings(match_id, parsed))
 
-        # Step 5: Mark as completed
+        # Step 5: Run ML error detection pipeline
+        asyncio.run(_update_demo_status(demo_id, "running_models"))
+        num_errors = asyncio.run(_run_ml_pipeline(match_id, org_id, parsed))
+        logger.info("Demo %s: detected %d errors via ML pipeline", demo_id, num_errors)
+
+        # Step 6: Mark as completed
         asyncio.run(_update_demo_status(demo_id, "completed"))
         logger.info("Demo %s processing completed (match %s)", demo_id, match_id)
 
