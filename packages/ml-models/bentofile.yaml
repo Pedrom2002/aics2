@@ -1,0 +1,12 @@
+service: "src.inference.serving:svc"
+labels:
+  project: cs2-analytics
+  team: ml
+include:
+  - "src/**/*.py"
+  - "checkpoints/**/*.pt"
+python:
+  packages:
+    - torch>=2.2.0
+    - numpy>=1.26.0
+    - lightgbm>=4.0.0

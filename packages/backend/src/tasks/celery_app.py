@@ -18,6 +18,18 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     task_routes={
         "src.tasks.demo_processing.*": {"queue": "demo-processing"},
+        "src.tasks.pro_ingestion.*": {"queue": "pro-ingestion"},
+    },
+    # Celery Beat schedule — periodic tasks
+    beat_schedule={
+        "ingest-pro-demos-hltv": {
+            "task": "src.tasks.pro_ingestion.ingest_hltv",
+            "schedule": 1800.0,  # every 30 minutes
+        },
+        "ingest-pro-demos-faceit": {
+            "task": "src.tasks.pro_ingestion.ingest_faceit",
+            "schedule": 1800.0,  # every 30 minutes
+        },
     },
 )
 
