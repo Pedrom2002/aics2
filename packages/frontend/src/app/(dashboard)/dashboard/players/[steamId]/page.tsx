@@ -13,7 +13,76 @@ import {
   Zap,
 } from 'lucide-react'
 import { api, ApiError } from '@/lib/api-client'
-import type { PlayerAggregatedStats } from '@/types/demo'
+import type { PlayerAggregatedStats, PlayerErrorSummary } from '@/types/demo'
+
+function RadarChart({ data }: { data: { label: string; value: number }[] }) {
+  const size = 250
+  const cx = size / 2
+  const cy = size / 2
+  const radius = 100
+  const levels = 5
+
+  const angleStep = (2 * Math.PI) / data.length
+  const startAngle = -Math.PI / 2
+
+  const getPoint = (angle: number, r: number) => ({
+    x: cx + r * Math.cos(angle),
+    y: cy + r * Math.sin(angle),
+  })
+
+  // Grid rings
+  const rings = Array.from({ length: levels }, (_, i) => {
+    const r = (radius / levels) * (i + 1)
+    const points = data.map((_, j) => getPoint(startAngle + j * angleStep, r))
+    return points.map((p) => `${p.x},${p.y}`).join(' ')
+  })
+
+  // Data polygon
+  const dataPoints = data.map((d, i) => {
+    const r = (d.value / 100) * radius
+    return getPoint(startAngle + i * angleStep, r)
+  })
+  const dataPolygon = dataPoints.map((p) => `${p.x},${p.y}`).join(' ')
+
+  // Axis lines + labels
+  const axes = data.map((d, i) => {
+    const angle = startAngle + i * angleStep
+    const end = getPoint(angle, radius + 15)
+    const labelPos = getPoint(angle, radius + 28)
+    return { end, labelPos, label: d.label, value: Math.round(d.value) }
+  })
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="mx-auto">
+      {/* Grid */}
+      {rings.map((points, i) => (
+        <polygon key={i} points={points} fill="none" stroke="#1a1a2e" strokeWidth="1" />
+      ))}
+      {/* Axes */}
+      {axes.map((a, i) => (
+        <g key={i}>
+          <line x1={cx} y1={cy} x2={a.end.x} y2={a.end.y} stroke="#1a1a2e" strokeWidth="1" />
+          <text
+            x={a.labelPos.x}
+            y={a.labelPos.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-text-muted"
+            fontSize="10"
+          >
+            {a.label}
+          </text>
+        </g>
+      ))}
+      {/* Data fill */}
+      <polygon points={dataPolygon} fill="rgba(99, 102, 241, 0.2)" stroke="rgb(99, 102, 241)" strokeWidth="2" />
+      {/* Data points */}
+      {dataPoints.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3" fill="rgb(99, 102, 241)" />
+      ))}
+    </svg>
+  )
+}
 
 function StatCard({
   label,
@@ -45,6 +114,7 @@ export default function PlayerStatsPage() {
   const steamId = params.steamId as string
 
   const [stats, setStats] = useState<PlayerAggregatedStats | null>(null)
+  const [errorSummary, setErrorSummary] = useState<PlayerErrorSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,6 +124,13 @@ export default function PlayerStatsPage() {
       setError(null)
       const data = await api.get<PlayerAggregatedStats>(`/players/${steamId}/stats`)
       setStats(data)
+      // Load error summary (non-blocking)
+      try {
+        const errors = await api.get<PlayerErrorSummary>(`/players/${steamId}/errors`)
+        setErrorSummary(errors)
+      } catch {
+        // Errors may not be available
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)
@@ -181,6 +258,73 @@ export default function PlayerStatsPage() {
           </table>
         </div>
       </div>
+
+      {/* Radar Chart — Skill Profile */}
+      <div className="mb-6">
+        <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+          <Target className="h-4 w-4 text-primary" />
+          Skill Profile
+        </h2>
+        <div className="bg-bg-card border border-border rounded-xl p-4">
+          <RadarChart
+            data={[
+              { label: 'Aim', value: Math.min(stats.avg_headshot_pct * 1.5, 100) },
+              { label: 'Impact', value: Math.min(stats.avg_impact_rating * 50, 100) },
+              { label: 'Game Sense', value: Math.min(stats.avg_kast_pct, 100) },
+              { label: 'Utility', value: Math.min((stats.total_flash_assists / Math.max(stats.total_rounds, 1)) * 500, 100) },
+              { label: 'Positioning', value: Math.min(stats.avg_survival_rate, 100) },
+              { label: 'Consistency', value: Math.max(0, 100 - stats.rating_std_deviation * 200) },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* Error Summary */}
+      {errorSummary && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            Error Analysis
+          </h2>
+          <div className="bg-bg-card border border-border rounded-xl p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="bg-bg-elevated rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{errorSummary.total_errors}</div>
+                <div className="text-text-dim text-xs">Total Errors</div>
+              </div>
+              <div className="bg-bg-elevated rounded-lg p-3 text-center">
+                <div className="text-xl font-bold text-red-400">{errorSummary.critical_count}</div>
+                <div className="text-text-dim text-xs">Critical</div>
+              </div>
+              <div className="bg-bg-elevated rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{errorSummary.positioning_errors}</div>
+                <div className="text-text-dim text-xs">Positioning</div>
+              </div>
+              <div className="bg-bg-elevated rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{errorSummary.utility_errors}</div>
+                <div className="text-text-dim text-xs">Utility</div>
+              </div>
+            </div>
+
+            {errorSummary.top_recommendations.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-text-muted mb-2">Top Recommendations</h3>
+                <div className="space-y-2">
+                  {errorSummary.top_recommendations.map((rec, i) => (
+                    <div key={i} className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                      <div className="text-xs text-primary font-medium">{rec.title}</div>
+                      <p className="text-xs text-text-muted mt-1">{rec.description}</p>
+                      {rec.expected_impact && (
+                        <p className="text-[10px] text-text-dim mt-1">{rec.expected_impact}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Maps */}
       {mapEntries.length > 0 && (

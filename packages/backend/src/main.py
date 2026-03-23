@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import settings
 from src.exceptions import http_exception_handler, validation_exception_handler
-from src.routers import auth, beta, demos, health, heatmap, ml, players, pro_matches, sse
+from src.routers import auth, beta, billing, demos, health, heatmap, ml, players, pro_matches, sse
 
 
 @asynccontextmanager
@@ -51,3 +51,4 @@ app.include_router(ml.router, prefix="/api/v1")
 app.include_router(sse.router, prefix="/api/v1")
 app.include_router(heatmap.router, prefix="/api/v1")
 app.include_router(pro_matches.router, prefix="/api/v1")
+app.include_router(billing.router, prefix="/api/v1")

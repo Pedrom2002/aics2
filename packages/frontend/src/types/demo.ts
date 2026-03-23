@@ -156,6 +156,65 @@ export interface MatchEconomy {
   rounds: MatchEconomyRound[]
 }
 
+// ML Error Detection types
+export interface FeatureImportance {
+  feature: string
+  value: number | string
+  impact: number
+}
+
+export interface ErrorExplanation {
+  method: string
+  explanation_text: string
+  feature_importances: FeatureImportance[]
+}
+
+export interface ErrorRecommendation {
+  title: string
+  description: string
+  priority: number
+  template_id: string | null
+  expected_impact: string | null
+  pro_reference: string | null
+}
+
+export interface DetectedError {
+  id: string
+  player_steam_id: string
+  round_number: number
+  error_type: string
+  severity: string
+  confidence: number
+  tick: number | null
+  position_x: number | null
+  position_y: number | null
+  position_z: number | null
+  description: string
+  model_name: string
+  model_version: string
+  explanation: ErrorExplanation | null
+  recommendation: ErrorRecommendation | null
+}
+
+export interface MatchErrorsResponse {
+  match_id: string
+  total_errors: number
+  critical_count: number
+  minor_count: number
+  errors: DetectedError[]
+}
+
+export interface PlayerErrorSummary {
+  player_steam_id: string
+  total_errors: number
+  positioning_errors: number
+  utility_errors: number
+  timing_errors: number
+  critical_count: number
+  minor_count: number
+  top_recommendations: ErrorRecommendation[]
+}
+
 export interface PaginatedResponse<T> {
   items: T[]
   total: number

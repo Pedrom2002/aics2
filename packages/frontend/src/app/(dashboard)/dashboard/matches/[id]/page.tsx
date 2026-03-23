@@ -152,6 +152,17 @@ export default function MatchDetailPage() {
         Back
       </button>
 
+      {/* Navigation */}
+      <div className="flex gap-2 mb-6">
+        <Link
+          href={`/dashboard/matches/${matchId}/errors`}
+          className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/20 transition-colors"
+        >
+          <Zap className="h-3.5 w-3.5" />
+          Error Analysis
+        </Link>
+      </div>
+
       {/* Match Header */}
       <div className="bg-bg-card border border-border rounded-xl p-6 mb-6">
         <div className="flex items-center justify-between">
