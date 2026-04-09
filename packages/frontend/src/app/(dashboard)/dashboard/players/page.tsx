@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Crosshair, Loader2, Search, Users } from 'lucide-react'
+import { Crosshair, Search, Users } from 'lucide-react'
 import { api } from '@/lib/api-client'
+import { TableSkeleton } from '@/components/common/skeleton'
 
 interface PlayerListItem {
   player_steam_id: string
@@ -72,9 +73,7 @@ export default function PlayersListPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 text-text-muted animate-spin" />
-        </div>
+        <TableSkeleton rows={8} />
       ) : !data || data.items.length === 0 ? (
         <div className="text-center py-20 text-text-dim">
           {search ? 'No players found matching your search' : 'No players found. Upload and process some demos first.'}

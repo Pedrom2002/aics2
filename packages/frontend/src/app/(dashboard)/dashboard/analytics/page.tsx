@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { BarChart3, Crosshair, Loader2, Target, TrendingUp } from 'lucide-react'
+import { BarChart3, Crosshair, Target, TrendingUp } from 'lucide-react'
 import { api } from '@/lib/api-client'
+import { PageSkeleton } from '@/components/common/skeleton'
 
 interface PlayerListItem {
   player_steam_id: string
@@ -46,11 +47,7 @@ export default function AnalyticsPage() {
   }, [loadData])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 text-text-muted animate-spin" />
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return (

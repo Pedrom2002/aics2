@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.match import Match
 from src.models.player_match_stats import PlayerMatchStats
+from src.services.cache_service import cache_get, cache_set
 from src.services.feature_engine import AggregatedPlayerStats, compute_aggregated_stats
 
 
@@ -16,6 +17,11 @@ async def get_player_aggregated_stats(
     steam_id: str,
 ) -> AggregatedPlayerStats | None:
     """Get aggregated stats for a player across all matches in the org."""
+    cache_key = f"player_stats:{org_id}:{steam_id}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return AggregatedPlayerStats(**cached)
+
     stmt = (
         select(PlayerMatchStats, Match.total_rounds, Match.map)
         .join(Match, PlayerMatchStats.match_id == Match.id)
@@ -60,7 +66,12 @@ async def get_player_aggregated_stats(
             }
         )
 
-    return compute_aggregated_stats(steam_id, match_stats)
+    result = compute_aggregated_stats(steam_id, match_stats)
+    if result:
+        from dataclasses import asdict
+
+        await cache_set(cache_key, asdict(result), ttl=300)
+    return result
 
 
 async def get_match_economy(

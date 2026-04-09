@@ -29,6 +29,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Light theme overrides */
+.light {
+  --color-bg: #f5f5f7;
+  --color-bg-card: #ffffff;
+  --color-bg-elevated: #eeeef0;
+  --color-border: #d4d4da;
+  --color-border-hover: #b0b0ba;
+  --color-text: #1a1a2e;
+  --color-text-muted: #5a5a6e;
+  --color-text-dim: #8888a0;
+  --color-primary: #e05800;
+  --color-primary-hover: #c04a00;
+  --color-primary-dim: rgba(224, 88, 0, 0.12);
+  --color-accent: #0099cc;
+  --color-accent-dim: rgba(0, 153, 204, 0.12);
+}
+
 ::selection {
   background-color: var(--color-primary-dim);
   color: var(--color-primary);
