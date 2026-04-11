@@ -1,0 +1,156 @@
+name: E2E
+
+on:
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      PLAYWRIGHT_API_BASE_URL: http://localhost:8000
+      DATABASE_URL: postgresql+asyncpg://cs2user:localdev123@localhost:5432/cs2analytics
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: ci-test-secret-key-not-for-production
+      ENVIRONMENT: test
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cs2user
+          POSTGRES_PASSWORD: localdev123
+          POSTGRES_DB: cs2analytics
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ----- Node + pnpm + frontend deps -----
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      # ----- Python + uv + backend deps -----
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend deps
+        working-directory: packages/backend
+        run: uv sync --extra dev --extra test
+
+      # ----- Playwright browsers -----
+      - name: Install Playwright browsers
+        working-directory: packages/frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      # ----- Start backend in background -----
+      - name: Start FastAPI backend
+        working-directory: packages/backend
+        run: |
+          uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 \
+            > backend.log 2>&1 &
+          echo $! > backend.pid
+          # Wait for /health to respond (max ~60s)
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/api/v1/health > /dev/null; then
+              echo "Backend ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to start"
+          cat backend.log
+          exit 1
+
+      # ----- Build + start frontend -----
+      - name: Build frontend
+        working-directory: packages/frontend
+        run: pnpm build
+
+      - name: Start frontend
+        working-directory: packages/frontend
+        run: |
+          pnpm start > frontend.log 2>&1 &
+          echo $! > frontend.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "Frontend ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend failed to start"
+          cat frontend.log
+          exit 1
+
+      # ----- Run Playwright -----
+      - name: Run Playwright tests
+        working-directory: packages/frontend
+        run: pnpm exec playwright test
+
+      # ----- Cleanup + artifacts -----
+      - name: Stop background services
+        if: always()
+        run: |
+          if [ -f packages/backend/backend.pid ]; then
+            kill "$(cat packages/backend/backend.pid)" || true
+          fi
+          if [ -f packages/frontend/frontend.pid ]; then
+            kill "$(cat packages/frontend/frontend.pid)" || true
+          fi
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: packages/frontend/playwright-report/
+          retention-days: 14
+
+      - name: Upload backend log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-log
+          path: packages/backend/backend.log
+          retention-days: 7
+
+      - name: Upload frontend log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-log
+          path: packages/frontend/frontend.log
+          retention-days: 7
