@@ -20,9 +20,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
 @limiter.limit(settings.RATE_LIMIT_AUTH)
-async def register(
-    request: Request, body: RegisterRequest, db: AsyncSession = Depends(get_db)
-):
+async def register(request: Request, body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     return await auth_service.register(
         db=db,
         org_name=body.org_name,

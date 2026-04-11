@@ -335,7 +335,7 @@ def _extract_ml_windows(raw_kills: list, raw_ticks: list, trade_sids: set) -> li
         k1_victim = str(k1.get("victim_steamid", ""))
         k1_tick = k1.get("tick", 0)
         k1_attacker = str(k1.get("attacker_steamid", ""))
-        for k2 in kills_sorted[ki + 1:]:
+        for k2 in kills_sorted[ki + 1 :]:
             if k2.get("tick", 0) - k1_tick > 320:
                 break
             if str(k2.get("victim_steamid", "")) == k1_attacker:
@@ -405,7 +405,7 @@ def _extract_ml_windows(raw_kills: list, raw_ticks: list, trade_sids: set) -> li
             dt = max(t2["tick"] - t1["tick"], 1)
             dx = t2.get("X", 0) - t1.get("X", 0)
             dy = t2.get("Y", 0) - t1.get("Y", 0)
-            velocity = (dx ** 2 + dy ** 2) ** 0.5 / dt * 64
+            velocity = (dx**2 + dy**2) ** 0.5 / dt * 64
 
         # Build 18-feature matrix — MUST match train_pipeline.py exactly
         features = np.zeros((64, 18), dtype=np.float32)
@@ -433,22 +433,24 @@ def _extract_ml_windows(raw_kills: list, raw_ticks: list, trade_sids: set) -> li
         features[:, 16] = 1.0 if kill.get("penetrated") else 0.0
         features[:, 17] = 1.0 if kill.get("attackerinair") else 0.0
 
-        windows.append({
-            "features": features,
-            "kill": kill,
-            "label_info": {
-                "teammates_nearby": teammates_nearby,
-                "enemies_close": enemies_close,
-                "was_traded": was_traded,
-                "velocity": velocity,
-                "victim_sid": str(victim_sid),
-                "round_number": round_num,
-                "tick": kill_tick,
-                "pos_x": victim_x,
-                "pos_y": victim_y,
-                "pos_z": victim_z,
-            },
-        })
+        windows.append(
+            {
+                "features": features,
+                "kill": kill,
+                "label_info": {
+                    "teammates_nearby": teammates_nearby,
+                    "enemies_close": enemies_close,
+                    "was_traded": was_traded,
+                    "velocity": velocity,
+                    "victim_sid": str(victim_sid),
+                    "round_number": round_num,
+                    "tick": kill_tick,
+                    "pos_x": victim_x,
+                    "pos_y": victim_y,
+                    "pos_z": victim_z,
+                },
+            }
+        )
 
     return windows
 
@@ -521,12 +523,31 @@ def run_ml_positioning_inference(
 
         # Feature importances from model probabilities
         import json
-        importances = json.dumps([
-            {"feature": "teammates_nearby", "value": info["teammates_nearby"], "impact": float(probs[i][0])},
-            {"feature": "was_traded", "value": int(info["was_traded"]), "impact": float(probs[i][0]) * 0.3},
-            {"feature": "enemies_close", "value": info["enemies_close"], "impact": float(probs[i][pred_class]) * 0.25},
-            {"feature": "velocity", "value": round(info["velocity"], 1), "impact": float(probs[i][pred_class]) * 0.15},
-        ])
+
+        importances = json.dumps(
+            [
+                {
+                    "feature": "teammates_nearby",
+                    "value": info["teammates_nearby"],
+                    "impact": float(probs[i][0]),
+                },
+                {
+                    "feature": "was_traded",
+                    "value": int(info["was_traded"]),
+                    "impact": float(probs[i][0]) * 0.3,
+                },
+                {
+                    "feature": "enemies_close",
+                    "value": info["enemies_close"],
+                    "impact": float(probs[i][pred_class]) * 0.25,
+                },
+                {
+                    "feature": "velocity",
+                    "value": round(info["velocity"], 1),
+                    "impact": float(probs[i][pred_class]) * 0.15,
+                },
+            ]
+        )
 
         explanation = (
             f"ML model detected {class_labels[pred_class]} positioning error "

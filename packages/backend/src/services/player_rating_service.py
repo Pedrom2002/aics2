@@ -74,8 +74,11 @@ def get_clusters_data() -> dict | None:
     try:
         with open(path) as f:
             _loaded_clusters_data = json.load(f)
-        logger.info("Loaded clusters data from %s (%d players)",
-                    path, len(_loaded_clusters_data.get("players", [])))
+        logger.info(
+            "Loaded clusters data from %s (%d players)",
+            path,
+            len(_loaded_clusters_data.get("players", [])),
+        )
         return _loaded_clusters_data
     except Exception as e:
         logger.warning("Failed to load clusters: %s", e)
@@ -119,29 +122,45 @@ def predict_player_rating(stats: dict) -> float | None:
     util_dmg_r = stats.get("utility_damage", 0) / rounds
     kd = kills / deaths
     adr = stats.get("adr", 0.0) or 0.0
-    impact = (
-        2.13 * multi_4k_r +
-        1.5 * multi_3k_r +
-        1.0 * opening_kr +
-        0.42 * clutch_r
-    )
+    impact = 2.13 * multi_4k_r + 1.5 * multi_3k_r + 1.0 * opening_kr + 0.42 * clutch_r
 
-    features = np.array([[
-        kpr, dpr, apr, kd, hs_pct, kast, survival,
-        opening_kr, opening_dr, trade_kr, trade_dr,
-        multi_3k_r, multi_4k_r, multi_5k_r,
-        clutch_r, flash_r, util_dmg_r,
-        adr, impact,
-        kills, deaths, assists,
-        stats.get("headshot_kills", 0),
-        stats.get("first_kills", 0),
-        stats.get("first_deaths", 0),
-        stats.get("trade_kills", 0),
-        stats.get("trade_deaths", 0),
-        stats.get("kast_rounds", 0),
-        stats.get("rounds_survived", 0),
-        rounds,
-    ]], dtype=np.float32)
+    features = np.array(
+        [
+            [
+                kpr,
+                dpr,
+                apr,
+                kd,
+                hs_pct,
+                kast,
+                survival,
+                opening_kr,
+                opening_dr,
+                trade_kr,
+                trade_dr,
+                multi_3k_r,
+                multi_4k_r,
+                multi_5k_r,
+                clutch_r,
+                flash_r,
+                util_dmg_r,
+                adr,
+                impact,
+                kills,
+                deaths,
+                assists,
+                stats.get("headshot_kills", 0),
+                stats.get("first_kills", 0),
+                stats.get("first_deaths", 0),
+                stats.get("trade_kills", 0),
+                stats.get("trade_deaths", 0),
+                stats.get("kast_rounds", 0),
+                stats.get("rounds_survived", 0),
+                rounds,
+            ]
+        ],
+        dtype=np.float32,
+    )
 
     return float(model.predict(features)[0])
 
@@ -183,12 +202,14 @@ def list_archetypes() -> list[dict]:
 
     archetypes = []
     for cluster_id, info in (data.get("archetypes", {}) or {}).items():
-        archetypes.append({
-            "cluster_id": int(cluster_id),
-            "name": info.get("name"),
-            "size": info.get("size"),
-            "top_features": info.get("top_features", []),
-            "sample_players": info.get("sample_players", []),
-        })
+        archetypes.append(
+            {
+                "cluster_id": int(cluster_id),
+                "name": info.get("name"),
+                "size": info.get("size"),
+                "top_features": info.get("top_features", []),
+                "sample_players": info.get("sample_players", []),
+            }
+        )
 
     return sorted(archetypes, key=lambda a: -a["size"])

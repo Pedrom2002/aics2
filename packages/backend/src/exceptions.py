@@ -15,7 +15,9 @@ class ProblemDetail(BaseModel):
 # Custom exception classes
 class NotFoundError(HTTPException):
     def __init__(self, resource: str, identifier: str | None = None):
-        detail = f"{resource} not found" if not identifier else f"{resource} '{identifier}' not found"
+        detail = (
+            f"{resource} not found" if not identifier else f"{resource} '{identifier}' not found"
+        )
         super().__init__(status_code=404, detail=detail)
 
 

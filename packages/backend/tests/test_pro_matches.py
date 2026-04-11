@@ -28,9 +28,7 @@ async def test_list_pro_matches_pagination(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_list_pro_matches_filters(client: AsyncClient):
     """All filter parameters are accepted without error."""
-    resp = await client.get(
-        "/api/v1/pro/matches?team=Navi&map=de_mirage&event=Major&source=hltv"
-    )
+    resp = await client.get("/api/v1/pro/matches?team=Navi&map=de_mirage&event=Major&source=hltv")
     assert resp.status_code == 200
 
 

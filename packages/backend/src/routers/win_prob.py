@@ -57,19 +57,18 @@ async def get_match_winprob(
         rd = rounds_dict.setdefault(imp.round_number, [])
         # T win prob (after the kill)
         t_prob = imp.prob_after if imp.victim_side == "t" else imp.prob_after
-        rd.append({
-            "tick": imp.tick,
-            "prob_t": round(t_prob, 4),
-            "alive_t": imp.alive_t_before - (1 if imp.victim_side == "t" else 0),
-            "alive_ct": imp.alive_ct_before - (1 if imp.victim_side == "ct" else 0),
-            "victim_name": imp.victim_name,
-            "victim_side": imp.victim_side,
-        })
+        rd.append(
+            {
+                "tick": imp.tick,
+                "prob_t": round(t_prob, 4),
+                "alive_t": imp.alive_t_before - (1 if imp.victim_side == "t" else 0),
+                "alive_ct": imp.alive_ct_before - (1 if imp.victim_side == "ct" else 0),
+                "victim_name": imp.victim_name,
+                "victim_side": imp.victim_side,
+            }
+        )
 
-    rounds = [
-        {"round_number": rn, "points": pts}
-        for rn, pts in sorted(rounds_dict.items())
-    ]
+    rounds = [{"round_number": rn, "points": pts} for rn, pts in sorted(rounds_dict.items())]
 
     # Top deaths sorted by win delta (highest impact first)
     top_deaths = sorted(impacts, key=lambda i: i.win_delta, reverse=True)[:10]
@@ -95,27 +94,33 @@ async def get_match_winprob(
     player_stats: dict[str, dict] = {}
     for imp in impacts:
         # Victim impact (negative for them)
-        ps = player_stats.setdefault(imp.victim_steam_id, {
-            "steam_id": imp.victim_steam_id,
-            "name": imp.victim_name,
-            "deaths": 0,
-            "total_lost": 0.0,
-            "kills": 0,
-            "total_gained": 0.0,
-        })
+        ps = player_stats.setdefault(
+            imp.victim_steam_id,
+            {
+                "steam_id": imp.victim_steam_id,
+                "name": imp.victim_name,
+                "deaths": 0,
+                "total_lost": 0.0,
+                "kills": 0,
+                "total_gained": 0.0,
+            },
+        )
         ps["deaths"] += 1
         ps["total_lost"] += imp.win_delta
 
         # Attacker impact (positive for them)
         if imp.attacker_steam_id:
-            asp = player_stats.setdefault(imp.attacker_steam_id, {
-                "steam_id": imp.attacker_steam_id,
-                "name": imp.attacker_name or "Unknown",
-                "deaths": 0,
-                "total_lost": 0.0,
-                "kills": 0,
-                "total_gained": 0.0,
-            })
+            asp = player_stats.setdefault(
+                imp.attacker_steam_id,
+                {
+                    "steam_id": imp.attacker_steam_id,
+                    "name": imp.attacker_name or "Unknown",
+                    "deaths": 0,
+                    "total_lost": 0.0,
+                    "kills": 0,
+                    "total_gained": 0.0,
+                },
+            )
             asp["kills"] += 1
             asp["total_gained"] += imp.win_delta
 

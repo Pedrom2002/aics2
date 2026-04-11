@@ -291,10 +291,18 @@ def parse_demo(dem_path: str | Path, _demo_cls=None) -> ParsedDemo:
     dem = Demo(str(dem_path))
     # Request extended player props for ML features
     try:
-        dem.parse(player_props=[
-            "health", "armor_value", "has_helmet", "is_scoped", "is_walking",
-            "current_equip_value", "round_start_equip_value", "cash",
-        ])
+        dem.parse(
+            player_props=[
+                "health",
+                "armor_value",
+                "has_helmet",
+                "is_scoped",
+                "is_walking",
+                "current_equip_value",
+                "round_start_equip_value",
+                "cash",
+            ]
+        )
     except TypeError:
         # Fallback for older awpy versions
         dem.parse()

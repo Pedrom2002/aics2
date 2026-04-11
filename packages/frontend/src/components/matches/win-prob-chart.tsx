@@ -213,7 +213,7 @@ export function WinProbChart({ matchId }: WinProbChartProps) {
             Top Impact Deaths
           </h2>
           <p className="text-xs text-text-dim mb-4">
-            Deaths that hurt their team's chances the most
+            Deaths that hurt their team&apos;s chances the most
           </p>
           <div className="space-y-2">
             {data.top_deaths.map((d, i) => (

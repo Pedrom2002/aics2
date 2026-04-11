@@ -23,8 +23,13 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 MAPS = [
-    "de_mirage", "de_dust2", "de_inferno", "de_nuke",
-    "de_overpass", "de_ancient", "de_anubis",
+    "de_mirage",
+    "de_dust2",
+    "de_inferno",
+    "de_nuke",
+    "de_overpass",
+    "de_ancient",
+    "de_anubis",
 ]
 MAP_TO_IDX = {m: i for i, m in enumerate(MAPS)}
 
@@ -34,7 +39,10 @@ _loaded_model = None
 def _find_win_prob_model() -> Path | None:
     """Find win prob v2 checkpoint."""
     candidates = [
-        Path(__file__).parent.parent.parent.parent.parent / "data" / "checkpoints" / "win_prob_v2.lgb",
+        Path(__file__).parent.parent.parent.parent.parent
+        / "data"
+        / "checkpoints"
+        / "win_prob_v2.lgb",
         Path(__file__).parent.parent.parent.parent / "data" / "checkpoints" / "win_prob_v2.lgb",
         Path("D:/aics2-data/checkpoints/win_prob_v2.lgb"),
         Path.home() / ".cs2-analytics" / "checkpoints" / "win_prob_v2.lgb",
@@ -150,21 +158,27 @@ def _build_features(
     if map_idx >= 0:
         map_oh[map_idx] = 1.0
 
-    return np.array([[
-        state["alive_t"] / 5.0,
-        state["alive_ct"] / 5.0,
-        1.0 if victim_side == "t" else 0.0,
-        round_num / 30.0,
-        (t_score - ct_score) / max(total_rounds, 1),
-        t_score / 16.0,
-        ct_score / 16.0,
-        1.0 if round_num > 24 else 0.0,
-        equip_diff,
-        1.0 if bomb_planted else 0.0,
-        time_remaining,
-        state["avg_hp_t"] / 100.0,
-        state["avg_hp_ct"] / 100.0,
-    ] + map_oh], dtype=np.float32)
+    return np.array(
+        [
+            [
+                state["alive_t"] / 5.0,
+                state["alive_ct"] / 5.0,
+                1.0 if victim_side == "t" else 0.0,
+                round_num / 30.0,
+                (t_score - ct_score) / max(total_rounds, 1),
+                t_score / 16.0,
+                ct_score / 16.0,
+                1.0 if round_num > 24 else 0.0,
+                equip_diff,
+                1.0 if bomb_planted else 0.0,
+                time_remaining,
+                state["avg_hp_t"] / 100.0,
+                state["avg_hp_ct"] / 100.0,
+            ]
+            + map_oh
+        ],
+        dtype=np.float32,
+    )
 
 
 def compute_win_prob_impacts(parsed) -> list[WinProbDelta]:
@@ -205,7 +219,7 @@ def compute_win_prob_impacts(parsed) -> list[WinProbDelta]:
         k1_victim = str(k1.get("victim_steamid", ""))
         k1_tick = k1.get("tick", 0)
         k1_attacker = str(k1.get("attacker_steamid", ""))
-        for k2 in kills_sorted[ki + 1:]:
+        for k2 in kills_sorted[ki + 1 :]:
             if k2.get("tick", 0) - k1_tick > 320:
                 break
             if str(k2.get("victim_steamid", "")) == k1_attacker:
@@ -224,12 +238,10 @@ def compute_win_prob_impacts(parsed) -> list[WinProbDelta]:
         state = _build_alive_state(parsed.raw_ticks, round_num, kill_tick - 1)
 
         t_score = sum(
-            1 for r in parsed.rounds
-            if r.round_number < round_num and r.winner_side == "t"
+            1 for r in parsed.rounds if r.round_number < round_num and r.winner_side == "t"
         )
         ct_score = sum(
-            1 for r in parsed.rounds
-            if r.round_number < round_num and r.winner_side == "ct"
+            1 for r in parsed.rounds if r.round_number < round_num and r.winner_side == "ct"
         )
 
         start_t = round_start_ticks.get(round_num, kill_tick - 4000)
@@ -240,8 +252,15 @@ def compute_win_prob_impacts(parsed) -> list[WinProbDelta]:
         bomb_planted = round_bomb_planted.get(round_num, False)
 
         feat_before = _build_features(
-            state, victim_side, round_num, t_score, ct_score, total_rounds,
-            bomb_planted, time_remaining, map_idx,
+            state,
+            victim_side,
+            round_num,
+            t_score,
+            ct_score,
+            total_rounds,
+            bomb_planted,
+            time_remaining,
+            map_idx,
         )
         prob_before = float(model.predict(feat_before)[0])
 
@@ -253,8 +272,15 @@ def compute_win_prob_impacts(parsed) -> list[WinProbDelta]:
             state_after["alive_ct"] = max(state["alive_ct"] - 1, 0)
 
         feat_after = _build_features(
-            state_after, victim_side, round_num, t_score, ct_score, total_rounds,
-            bomb_planted, time_remaining, map_idx,
+            state_after,
+            victim_side,
+            round_num,
+            t_score,
+            ct_score,
+            total_rounds,
+            bomb_planted,
+            time_remaining,
+            map_idx,
         )
         prob_after = float(model.predict(feat_after)[0])
 
@@ -264,27 +290,29 @@ def compute_win_prob_impacts(parsed) -> list[WinProbDelta]:
         else:
             win_delta = (1.0 - prob_before) - (1.0 - prob_after)
 
-        impacts.append(WinProbDelta(
-            round_number=round_num,
-            tick=kill_tick,
-            victim_steam_id=victim_sid,
-            victim_name=str(kill.get("victim_name") or "Unknown"),
-            victim_side=victim_side,
-            attacker_steam_id=str(kill.get("attacker_steamid") or "") or None,
-            attacker_name=str(kill.get("attacker_name") or "") or None,
-            prob_before=prob_before,
-            prob_after=prob_after,
-            win_delta=float(win_delta),
-            alive_t_before=state["alive_t"],
-            alive_ct_before=state["alive_ct"],
-            bomb_planted=bomb_planted,
-            weapon=kill.get("weapon"),
-            headshot=bool(kill.get("headshot")),
-            was_traded=victim_sid in traded_sids,
-            victim_x=kill.get("victim_X"),
-            victim_y=kill.get("victim_Y"),
-            victim_z=kill.get("victim_Z"),
-        ))
+        impacts.append(
+            WinProbDelta(
+                round_number=round_num,
+                tick=kill_tick,
+                victim_steam_id=victim_sid,
+                victim_name=str(kill.get("victim_name") or "Unknown"),
+                victim_side=victim_side,
+                attacker_steam_id=str(kill.get("attacker_steamid") or "") or None,
+                attacker_name=str(kill.get("attacker_name") or "") or None,
+                prob_before=prob_before,
+                prob_after=prob_after,
+                win_delta=float(win_delta),
+                alive_t_before=state["alive_t"],
+                alive_ct_before=state["alive_ct"],
+                bomb_planted=bomb_planted,
+                weapon=kill.get("weapon"),
+                headshot=bool(kill.get("headshot")),
+                was_traded=victim_sid in traded_sids,
+                victim_x=kill.get("victim_X"),
+                victim_y=kill.get("victim_Y"),
+                victim_z=kill.get("victim_Z"),
+            )
+        )
 
     logger.info("Computed win prob impact for %d kills", len(impacts))
     return impacts
