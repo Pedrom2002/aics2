@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cs2-analytics-config
+  namespace: cs2-analytics
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "cs2analytics"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  CORS_ORIGINS: "https://app.cs2analytics.example.com"
+  ML_MODELS_PATH: "/var/lib/cs2/models"
+  PARSE_CACHE_DIR: "/var/lib/cs2/parse-cache"
+  CELERY_BROKER_URL: "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+  PROMETHEUS_METRICS_ENABLED: "true"
+  NEXT_PUBLIC_API_URL: "https://api.cs2analytics.example.com"
