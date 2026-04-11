@@ -1,0 +1,146 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-04-11",
+  "models": [
+    {
+      "name": "win_prob",
+      "version": "v2",
+      "framework": "lightgbm",
+      "task": "binary_classification",
+      "path": "checkpoints/win_prob_v2.lgb",
+      "metrics": {
+        "auc": 0.904,
+        "accuracy": 0.83
+      },
+      "features": [
+        "alive_t",
+        "alive_ct",
+        "victim_is_t",
+        "round_num",
+        "score_diff",
+        "score_t",
+        "score_ct",
+        "is_overtime",
+        "equip_diff",
+        "bomb_planted",
+        "time_remaining",
+        "avg_hp_t",
+        "avg_hp_ct",
+        "map_de_mirage",
+        "map_de_dust2",
+        "map_de_inferno",
+        "map_de_nuke",
+        "map_de_overpass",
+        "map_de_ancient",
+        "map_de_anubis"
+      ],
+      "training_script": "packages/backend/train_v2.py",
+      "trained_at": "2026-03-15",
+      "description": "Round-level CS2 win probability classifier (T-side win). 21 features, gradient-boosted decision trees."
+    },
+    {
+      "name": "player_rating",
+      "version": "v1",
+      "framework": "catboost",
+      "task": "regression",
+      "path": "checkpoints/player_rating.cbm",
+      "metrics": {
+        "r2": 0.998,
+        "mae": 0.012
+      },
+      "features": [
+        "kpr", "dpr", "apr", "kd", "hs_pct", "kast", "survival",
+        "opening_kr", "opening_dr", "trade_kr", "trade_dr",
+        "multi_3k_r", "multi_4k_r", "multi_5k_r",
+        "clutch_r", "flash_r", "util_dmg_r",
+        "adr", "impact",
+        "kills", "deaths", "assists",
+        "headshot_kills", "first_kills", "first_deaths",
+        "trade_kills", "trade_deaths",
+        "kast_rounds", "rounds_survived",
+        "total_rounds"
+      ],
+      "training_script": "packages/backend/train_player_rating.py",
+      "trained_at": "2026-03-22",
+      "description": "Per-match player rating regressor calibrated against HLTV Rating 2.0."
+    },
+    {
+      "name": "player_archetypes",
+      "version": "v1",
+      "framework": "umap+hdbscan",
+      "task": "clustering",
+      "path": "checkpoints/player_clusters.json",
+      "metrics": {
+        "n_clusters": 8,
+        "silhouette": 0.42
+      },
+      "features": [
+        "KPR", "DPR", "APR", "KD", "HS%", "KAST%", "survival",
+        "opening_KR", "opening_DR", "trade_KR", "trade_DR",
+        "multi_3k_R", "multi_4k_R", "clutch_R", "flash_R",
+        "ADR", "util_dmg"
+      ],
+      "training_script": "packages/backend/train_clustering.py",
+      "trained_at": "2026-03-25",
+      "description": "UMAP 2D embedding + HDBSCAN clustering for player archetype discovery."
+    },
+    {
+      "name": "positioning",
+      "version": "mamba-v2",
+      "framework": "pytorch",
+      "task": "regression",
+      "path": "checkpoints/positioning/best_model.pt",
+      "metrics": {
+        "val_mae": 0.067
+      },
+      "features": [
+        "x", "y", "z", "health", "armor", "side",
+        "equip_value", "is_scoped", "is_walking",
+        "kill_distance", "headshot", "teammates_nearby",
+        "enemies_close", "was_traded", "velocity",
+        "time_remaining", "bomb_planted", "alive_total"
+      ],
+      "training_script": "packages/backend/train_v2.py",
+      "trained_at": "2026-03-18",
+      "description": "Mamba SSM regression model predicting win-prob delta from 64-tick positioning windows."
+    },
+    {
+      "name": "timing",
+      "version": "mamba-v1",
+      "framework": "pytorch",
+      "task": "classification",
+      "path": "checkpoints/timing/best_model.pt",
+      "metrics": {
+        "accuracy": 0.81
+      },
+      "features": [
+        "tick_offset", "x", "y", "z", "health",
+        "side", "equip_value", "weapon_id",
+        "is_scoped", "round_phase",
+        "alive_t", "alive_ct", "bomb_planted", "time_remaining"
+      ],
+      "training_script": "packages/ml-models/src/training/train_positioning.py",
+      "trained_at": "2026-03-18",
+      "description": "Mamba SSM classifier for utility/engagement timing errors over 320-tick windows."
+    },
+    {
+      "name": "strategy_gnn",
+      "version": "v1",
+      "framework": "pytorch+graphsage",
+      "task": "classification",
+      "path": "checkpoints/strategy_gnn.pt",
+      "metrics": {
+        "accuracy": null,
+        "note": "model architecture defined; weights not trained, deterministic heuristic fallback active"
+      },
+      "features": [
+        "x", "y", "z", "health", "armor", "side", "equip_value",
+        "is_scoped", "is_walking", "weapon_primary", "weapon_secondary",
+        "has_bomb", "has_defuser", "flashed", "alive", "stamina"
+      ],
+      "training_script": null,
+      "trained_at": null,
+      "description": "GraphSAGE strategy classifier (5-node team graph). Untrained — predict_strategy() falls back to deterministic heuristic over economy/time/bomb state."
+    }
+  ]
+}
