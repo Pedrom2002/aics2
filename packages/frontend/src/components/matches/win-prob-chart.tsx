@@ -178,7 +178,7 @@ export function WinProbChart({ matchId }: WinProbChartProps) {
                 borderRadius: '8px',
                 fontSize: '12px',
               }}
-              formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, 'T win prob']}
+              formatter={(value) => [`${(Number(value) * 100).toFixed(1)}%`, 'T win prob']}
               labelFormatter={(label, payload) => {
                 if (payload && payload[0]) {
                   return payload[0].payload.label
