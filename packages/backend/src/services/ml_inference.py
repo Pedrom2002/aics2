@@ -319,8 +319,8 @@ def _extract_ml_windows(raw_kills: list, raw_ticks: list, trade_sids: set) -> li
     """
     import numpy as np
 
-    TRADE_RANGE = 800.0
-    CLOSE_RANGE = 500.0
+    TRADE_RANGE = 800.0  # noqa: N806
+    CLOSE_RANGE = 500.0  # noqa: N806
 
     # Index ticks by (steamid, round_num)
     ticks_by_player_round: dict[tuple, list[dict]] = {}
@@ -468,7 +468,7 @@ def run_ml_positioning_inference(
 
     try:
         import torch
-        import torch.nn.functional as F
+        import torch.nn.functional as F  # noqa: N812
     except ImportError:
         logger.warning("PyTorch not available, falling back to heuristic")
         return []

@@ -5,8 +5,6 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import TestSessionLocal
-
 
 async def _register_and_get_token(client: AsyncClient) -> str:
     resp = await client.post(

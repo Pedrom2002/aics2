@@ -1,10 +1,7 @@
 """Tests for billing endpoints."""
 
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
-
-from tests.conftest import TestSessionLocal, get_test_db
 
 
 async def _register_and_get_token(client: AsyncClient) -> str:
