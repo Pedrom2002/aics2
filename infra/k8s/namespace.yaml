@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cs2-analytics
+  labels:
+    name: cs2-analytics
+    app.kubernetes.io/part-of: cs2-analytics

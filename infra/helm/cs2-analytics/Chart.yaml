@@ -1,0 +1,16 @@
+apiVersion: v2
+name: cs2-analytics
+description: Helm chart for the AI CS2 Analytics platform (FastAPI backend, Next.js frontend, Postgres, Redis)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - cs2
+  - analytics
+  - esports
+  - ml
+maintainers:
+  - name: cs2-analytics
+    url: https://github.com/cs2-analytics/cs2-analytics
+sources:
+  - https://github.com/cs2-analytics/cs2-analytics

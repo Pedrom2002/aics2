@@ -1,0 +1,90 @@
+# Default values for cs2-analytics.
+# Override with: helm install ... -f my-values.yaml
+
+global:
+  environment: production
+  imageRegistry: ghcr.io/cs2-analytics
+  imagePullPolicy: IfNotPresent
+
+backend:
+  enabled: true
+  image:
+    repository: backend
+    tag: latest
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8000
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  probes:
+    path: /health
+    initialDelaySeconds: 30
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+frontend:
+  enabled: true
+  image:
+    repository: frontend
+    tag: latest
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  probes:
+    path: /api/health
+
+postgres:
+  # Set to false if using managed Postgres (RDS, Cloud SQL).
+  enabled: true
+  image: postgres:16-alpine
+  storage: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  storage: 5Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 200m
+  hosts:
+    app: app.cs2analytics.example.com
+    api: api.cs2analytics.example.com
+  tls:
+    enabled: true
+    secretName: cs2-analytics-tls
+
+config:
+  logLevel: INFO
+  corsOrigins: https://app.cs2analytics.example.com
+  modelsPath: /var/lib/cs2/models
+
+secrets:
+  # Reference an existing secret rather than committing values here.
+  existingSecret: cs2-analytics-secrets
