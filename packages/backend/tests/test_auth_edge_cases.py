@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 import pytest
 from jose import jwt
-from httpx import AsyncClient
 
 from src.config import settings
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
 
 
 async def _register(client: AsyncClient, email: str, org: str = "Edge Team") -> dict:

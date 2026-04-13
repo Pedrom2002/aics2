@@ -25,7 +25,6 @@ def compute_drift() -> dict:
 
     Returns a summary dict (used by tests and logs).
     """
-    from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
     from src.config import settings
     from src.services.ml_drift import FEATURE_DRIFT, _load_baseline  # noqa: PLC0415

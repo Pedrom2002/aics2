@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import uuid
 from collections import Counter
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.middleware.auth import get_current_user
@@ -15,7 +15,11 @@ from src.models.player_match_stats import PlayerMatchStats
 from src.models.pro_match import ProMatch
 from src.models.team import Team
 from src.models.team_player import TeamPlayer
-from src.schemas.auth import TokenPayload
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from src.schemas.auth import TokenPayload
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 

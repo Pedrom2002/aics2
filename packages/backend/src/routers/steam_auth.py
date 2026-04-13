@@ -10,21 +10,24 @@ from __future__ import annotations
 import logging
 import re
 import secrets
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
 from src.database import get_db
 from src.models.organization import Organization
+from src.models.refresh_token import RefreshToken
 from src.models.user import User
 from src.services.auth_service import _create_access_token, _create_refresh_token_value, _hash_token
-from src.models.refresh_token import RefreshToken
-from datetime import UTC, datetime, timedelta
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

@@ -61,7 +61,9 @@ def simulate_match(match_id: str, rounds: int = 24, tick_interval_s: float = 2.0
         t_win = 0.55 if winner == "T" else 0.45
         r.publish(
             channel,
-            json.dumps({"match_id": match_id, "round": round_num, "winner": winner, "ts": int(time.time())}),
+            json.dumps(
+                {"match_id": match_id, "round": round_num, "winner": winner, "ts": int(time.time())}
+            ),
         )
         published += 1
 

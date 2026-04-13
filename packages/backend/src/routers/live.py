@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -18,7 +19,9 @@ from redis.asyncio import Redis
 
 from src.config import settings
 from src.middleware.auth import get_current_user
-from src.schemas.auth import TokenPayload
+
+if TYPE_CHECKING:
+    from src.schemas.auth import TokenPayload
 
 logger = logging.getLogger(__name__)
 

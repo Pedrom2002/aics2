@@ -229,7 +229,9 @@ async def get_replay_frames(
     from src.models.round import Round
 
     match_uuid = UUID(match_id)
-    match = (await session.execute(select(Match).where(Match.id == match_uuid))).scalar_one_or_none()
+    match = (
+        await session.execute(select(Match).where(Match.id == match_uuid))
+    ).scalar_one_or_none()
     if match is None:
         return None
 
@@ -242,10 +244,14 @@ async def get_replay_frames(
         return None
 
     players = (
-        await session.execute(
-            select(PlayerMatchStats).where(PlayerMatchStats.match_id == match_uuid)
+        (
+            await session.execute(
+                select(PlayerMatchStats).where(PlayerMatchStats.match_id == match_uuid)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     start = rd.start_tick or 0
     end = rd.end_tick or (start + 64 * 115)

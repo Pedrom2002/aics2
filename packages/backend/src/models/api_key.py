@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, DateTime, ForeignKey, Integer, JSON, String, Uuid, func
+from sqlalchemy import ARRAY, JSON, DateTime, ForeignKey, Integer, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.models.base import Base
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class ApiKey(Base):
@@ -16,7 +19,8 @@ class ApiKey(Base):
     org_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        nullable=False, index=True,
+        nullable=False,
+        index=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     key_prefix: Mapped[str] = mapped_column(String(12), nullable=False, index=True)

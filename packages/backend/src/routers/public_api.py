@@ -10,17 +10,20 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from slowapi import Limiter
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
 from src.middleware.auth import get_current_user
 from src.models.api_key import ApiKey
-from src.schemas.auth import TokenPayload
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from src.schemas.auth import TokenPayload
 
 router = APIRouter(prefix="/public", tags=["public"])
 admin_router = APIRouter(prefix="/api-keys", tags=["api-keys"])
@@ -109,8 +112,9 @@ async def revoke_api_key(
     import uuid
 
     result = await db.execute(
-        select(ApiKey).where(ApiKey.id == uuid.UUID(key_id),
-                             ApiKey.org_id == uuid.UUID(current_user.org_id))
+        select(ApiKey).where(
+            ApiKey.id == uuid.UUID(key_id), ApiKey.org_id == uuid.UUID(current_user.org_id)
+        )
     )
     key = result.scalar_one_or_none()
     if key is None:

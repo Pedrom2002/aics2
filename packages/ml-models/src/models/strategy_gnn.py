@@ -360,18 +360,16 @@ def predict_strategy(round_data: dict) -> dict:
     if side == "CT":
         label, conf = _heuristic_ct_strategy(round_data)
         valid = CT_STRATEGIES
-        coarse_map = _CT_COARSE_MAP
     else:
         label, conf = _heuristic_t_strategy(round_data)
         valid = T_STRATEGIES
-        coarse_map = _T_COARSE_MAP
 
     if label not in valid:
         label = valid[0]
         conf = 0.4
 
     return {
-        "strategy_type": coarse_map.get(label, label),
+        "strategy_type": label,
         "confidence": float(round(conf, 4)),
         "side": side,
         "method": "heuristic_fallback",
