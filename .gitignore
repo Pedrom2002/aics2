@@ -46,6 +46,7 @@ data/positioning/
 data/utility/
 data/checkpoints/
 data/demos/
+data/demo_links.*
 
 # Test databases
 *.db
@@ -64,3 +65,8 @@ coverage.xml
 pgdata/
 chdata/
 miniodata/
+
+# Local agent / build artifacts
+.claude/
+packages/backend/catboost_info/
+packages/ml-models/models/

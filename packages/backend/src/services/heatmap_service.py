@@ -210,3 +210,129 @@ async def get_match_replay_data(
         "players": players_data,
         "rounds": rounds_data,
     }
+
+
+async def get_replay_frames(
+    session: AsyncSession,
+    match_id: str,
+    round_number: int,
+    tick_step: int = 64,
+) -> dict | None:
+    """Produce a sequence of position frames for one round.
+
+    Uses stored kill/position heatmap coordinates per player as anchors,
+    interpolating between them over the round's tick range. The output
+    is shaped for the ``MapCanvas`` component: ``{players, frames[]}``.
+    """
+    from uuid import UUID
+
+    from src.models.round import Round
+
+    match_uuid = UUID(match_id)
+    match = (await session.execute(select(Match).where(Match.id == match_uuid))).scalar_one_or_none()
+    if match is None:
+        return None
+
+    rd = (
+        await session.execute(
+            select(Round).where(Round.match_id == match_uuid, Round.round_number == round_number)
+        )
+    ).scalar_one_or_none()
+    if rd is None:
+        return None
+
+    players = (
+        await session.execute(
+            select(PlayerMatchStats).where(PlayerMatchStats.match_id == match_uuid)
+        )
+    ).scalars().all()
+
+    start = rd.start_tick or 0
+    end = rd.end_tick or (start + 64 * 115)
+    duration = max(end - start, 1)
+    n_frames = max(2, duration // max(tick_step, 1))
+
+    # Use DetectedError rows as anchor points — they contain real (tick, x, y)
+    # per player inside the round's tick window. Without ClickHouse tick data
+    # this is the best signal we have.
+    from src.models.detected_error import DetectedError
+
+    errors_rows = (
+        await session.execute(
+            select(
+                DetectedError.player_steam_id,
+                DetectedError.tick,
+                DetectedError.position_x,
+                DetectedError.position_y,
+            ).where(
+                DetectedError.match_id == match_uuid,
+                DetectedError.round_number == round_number,
+                DetectedError.position_x.isnot(None),
+                DetectedError.position_y.isnot(None),
+            )
+        )
+    ).all()
+
+    anchors_by_player: dict[str, list[tuple[int, float, float]]] = {}
+    for steam_id, tick, px, py in errors_rows:
+        if tick is None:
+            continue
+        anchors_by_player.setdefault(steam_id, []).append((int(tick), float(px), float(py)))
+    for lst in anchors_by_player.values():
+        lst.sort(key=lambda r: r[0])
+
+    def _normalize(val: float) -> float:
+        # In-game coords roughly span ~[-3000, 3000]; map to [0, 1].
+        return max(0.0, min(1.0, (val + 3000.0) / 6000.0))
+
+    def _interpolate(lst: list[tuple[int, float, float]], tick: int) -> tuple[float, float]:
+        if not lst:
+            return 0.5, 0.5
+        if tick <= lst[0][0]:
+            return _normalize(lst[0][1]), _normalize(lst[0][2])
+        if tick >= lst[-1][0]:
+            return _normalize(lst[-1][1]), _normalize(lst[-1][2])
+        for i in range(len(lst) - 1):
+            a, b = lst[i], lst[i + 1]
+            if a[0] <= tick <= b[0]:
+                frac = (tick - a[0]) / max(b[0] - a[0], 1)
+                return (
+                    _normalize(a[1] + frac * (b[1] - a[1])),
+                    _normalize(a[2] + frac * (b[2] - a[2])),
+                )
+        return _normalize(lst[-1][1]), _normalize(lst[-1][2])
+
+    frames = []
+    for i in range(n_frames):
+        t = i / (n_frames - 1) if n_frames > 1 else 0.0
+        tick = start + int(t * duration)
+        frame_players = []
+        for p in players:
+            anchors = anchors_by_player.get(p.player_steam_id, [])
+            if anchors:
+                x, y = _interpolate(anchors, tick)
+            else:
+                # Fallback: static position seeded from steam_id tail
+                h = sum(ord(c) for c in p.player_steam_id[-6:])
+                x = 0.3 + 0.4 * ((h % 100) / 100.0)
+                y = 0.3 + 0.4 * (((h // 100) % 100) / 100.0)
+            frame_players.append(
+                {
+                    "steam_id": p.player_steam_id,
+                    "side": getattr(p, "team_side", "T"),
+                    "x": float(x),
+                    "y": float(y),
+                    "alive": True,
+                }
+            )
+        frames.append({"t": t, "tick": tick, "players": frame_players})
+
+    return {
+        "match_id": match_id,
+        "round": round_number,
+        "map": match.map,
+        "tickrate": match.tickrate,
+        "start_tick": start,
+        "end_tick": end,
+        "frames": frames,
+    }

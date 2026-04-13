@@ -10,6 +10,7 @@ Output: Strategy label (15 T-side or 10 CT-side options per map).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -247,39 +248,130 @@ def _heuristic_ct_strategy(round_data: dict) -> tuple[str, float]:
     return "standard_2_1_2", 0.5
 
 
+# Coarse taxonomy (matches training script)
+_T_COARSE_LABELS = ["execute", "fake", "default", "eco", "force", "save"]
+_CT_COARSE_LABELS = ["stack", "aggressive", "default", "retake", "save"]
+_T_COARSE_MAP = {
+    "a_execute": "execute", "b_execute": "execute", "split_a": "execute",
+    "split_b": "execute", "fast_a": "execute", "fast_b": "execute",
+    "force_buy_execute": "force", "a_fake_b": "fake", "b_fake_a": "fake",
+    "default_spread": "default", "slow_default": "default",
+    "mid_control_to_a": "default", "mid_control_to_b": "default",
+    "eco_rush": "eco", "save": "save",
+}
+_CT_COARSE_MAP = {
+    "stack_a": "stack", "stack_b": "stack", "aggressive_mid": "aggressive",
+    "aggressive_a": "aggressive", "standard_2_1_2": "default",
+    "passive_default": "default", "mixed": "default", "retake_setup": "retake",
+    "anti_eco_push": "aggressive", "save": "save",
+}
+
+# Checkpoint cache
+_CHECKPOINT_CACHE: dict[str, StrategyClassifier | None] = {}
+
+
+def _checkpoint_path(side: str) -> Path:
+    from pathlib import Path as _P
+    return _P(__file__).resolve().parents[2] / "models" / "strategy_gnn" / f"strategy_gnn_{side.lower()}.pt"
+
+
+def _load_checkpoint(side: str) -> StrategyClassifier | None:
+    if side in _CHECKPOINT_CACHE:
+        return _CHECKPOINT_CACHE[side]
+    path = _checkpoint_path(side)
+    if not path.exists():
+        _CHECKPOINT_CACHE[side] = None
+        return None
+    try:
+        from pathlib import Path  # noqa: F401
+        ckpt = torch.load(path, map_location="cpu", weights_only=False)
+        num_classes = len(_T_COARSE_LABELS if side == "T" else _CT_COARSE_LABELS)
+        config = StrategyGNNConfig(
+            num_t_strategies=num_classes if side == "T" else len(T_STRATEGIES),
+            num_ct_strategies=num_classes if side == "CT" else len(CT_STRATEGIES),
+        )
+        model = StrategyClassifier(config=config, side=side)
+        model.classifier = nn.Sequential(
+            nn.Linear(config.output_dim, 64),
+            nn.ReLU(),
+            nn.Dropout(config.dropout),
+            nn.Linear(64, num_classes),
+        )
+        model.load_state_dict(ckpt["model_state_dict"])
+        model.eval()
+        _CHECKPOINT_CACHE[side] = model
+        return model
+    except Exception:
+        _CHECKPOINT_CACHE[side] = None
+        return None
+
+
+def _build_round_graph(round_data: dict) -> tuple[torch.Tensor, torch.Tensor]:
+    """Synthesize the 5×16 node feature matrix + 5×5 adjacency from round_data."""
+    eco = float(round_data.get("equipment_value", 0) or 0)
+    enemy = float(round_data.get("enemy_equipment_value", 0) or 0)
+    time_remaining = float(round_data.get("time_remaining", 1.0) or 0)
+    bomb_planted = 1.0 if round_data.get("bomb_planted") else 0.0
+    bomb_site = 1.0 if str(round_data.get("bomb_site", "")).upper() == "A" else 0.0
+    avg_x = float(round_data.get("avg_team_x", 0) or 0) / 2000.0
+    avg_y = float(round_data.get("avg_team_y", 0) or 0) / 2000.0
+    alive = int(round_data.get("alive_team", 5) or 5)
+    a_count = float(round_data.get("ct_at_a", 0) or 0)
+    b_count = float(round_data.get("ct_at_b", 0) or 0)
+
+    x = torch.zeros(5, NODE_FEATURES, dtype=torch.float32)
+    for p in range(5):
+        alive_p = 1.0 if p < alive else 0.0
+        x[p] = torch.tensor([
+            avg_x, avg_y, alive_p, alive_p, 0.5, 0.5, 0.0,
+            eco / 25000.0, enemy / 25000.0, time_remaining,
+            bomb_planted, bomb_site, alive / 5.0, a_count / 5.0, b_count / 5.0, 0.5,
+        ])
+    adj = torch.ones(5, 5) - torch.eye(5)
+    return x, adj
+
+
 def predict_strategy(round_data: dict) -> dict:
     """Predict the team strategy for a round.
 
-    Args:
-        round_data: Dict describing the round state. Recognised keys:
-            side: "T" | "CT" (default "T")
-            equipment_value: total team equipment value
-            enemy_equipment_value: opponent team equipment value
-            time_remaining: 0..1 fraction of round time left
-            bomb_planted: bool
-            bomb_site: "A" | "B"
-            avg_team_x, avg_team_y: aggregated team coordinates
-            alive_team: number of alive teammates
-            ct_at_a, ct_at_b: number of CTs holding each site
-
-    Returns:
-        ``{"strategy_type": str, "confidence": float, "side": str, "method": str}``
+    Uses the trained GraphSAGE checkpoint when available; otherwise falls
+    back to the deterministic heuristic so the endpoint stays callable.
     """
     side = str(round_data.get("side", "T")).upper()
+
+    model = _load_checkpoint(side)
+    if model is not None:
+        try:
+            x, adj = _build_round_graph(round_data)
+            with torch.no_grad():
+                logits = model(x, adj)
+                probs = F.softmax(logits, dim=-1)
+                confidence, idx = probs.max(dim=-1)
+            labels = _T_COARSE_LABELS if side == "T" else _CT_COARSE_LABELS
+            return {
+                "strategy_type": labels[int(idx.item())],
+                "confidence": float(round(confidence.item(), 4)),
+                "side": side,
+                "method": "gnn_v1",
+            }
+        except Exception:
+            pass  # fall through to heuristic
+
     if side == "CT":
         label, conf = _heuristic_ct_strategy(round_data)
         valid = CT_STRATEGIES
+        coarse_map = _CT_COARSE_MAP
     else:
         label, conf = _heuristic_t_strategy(round_data)
         valid = T_STRATEGIES
+        coarse_map = _T_COARSE_MAP
 
     if label not in valid:
-        # Defensive: never return a label outside the canonical vocab
         label = valid[0]
         conf = 0.4
 
     return {
-        "strategy_type": label,
+        "strategy_type": coarse_map.get(label, label),
         "confidence": float(round(conf, 4)),
         "side": side,
         "method": "heuristic_fallback",

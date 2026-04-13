@@ -112,6 +112,36 @@ jobs:
         working-directory: .
       - run: pnpm build
 
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install pip-audit
+        run: uv tool install pip-audit
+      - name: Backend pip-audit
+        working-directory: packages/backend
+        run: |
+          uv sync --extra dev --extra test
+          uv run pip-audit --ignore-vuln GHSA-fake-placeholder --strict || true
+          uv run pip-audit --strict
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+      - name: Frontend pnpm audit
+        run: pnpm audit --audit-level=high --prod
+        continue-on-error: false
+
   ml-models-test:
     name: ML Models Test
     runs-on: ubuntu-latest

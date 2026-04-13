@@ -32,18 +32,31 @@ Full-stack analytics platform for Counter-Strike 2. Upload match demos, get win 
 | Player Archetypes v1 | UMAP + HDBSCAN | 8 clusters | Trained |
 | Positioning v2 | Mamba SSM | MAE 0.067 | Trained |
 | Timing v1 | Mamba SSM | Acc 0.81 | Trained |
-| Strategy GNN v1 | GraphSAGE | N/A | **Not trained** — uses deterministic heuristic fallback |
+| Strategy GNN v1 | GraphSAGE | Coarse (6T/5CT) | Weak-supervision pipeline in `ml-models/src/training/train_strategy_gnn.py` (heuristic fallback still active until checkpoints are committed) |
 
 SHAP explainability for win_prob and player_rating via `POST /api/v1/ml/explain`.
 
-**What's partial or scaffolded:**
-- Match replay page (components exist, no integrated player)
-- Player compare/training pages (routes exist, limited data)
-- Analytics page (placeholder)
-- Heatmap, SSE endpoints (stubs)
-- i18n (next-intl imported, translation keys used, but JSON files incomplete)
-- K8s/Helm/Terraform manifests (scaffolded, not production-tested)
-- Celery Beat schedule (configured but tasks not wired)
+**Shipped in this iteration:**
+- Sentry integration (backend + frontend) + CSP / HSTS headers
+- Dependency scanning (pip-audit + pnpm audit) in CI, Dependabot config
+- Auth edge-case tests (expired/forged JWT, refresh reuse, concurrent rotation)
+- Stripe webhook idempotency via Redis dedup
+- Strategy GNN training pipeline (weak supervision, coarse taxonomy)
+- ML feature-drift middleware + daily Celery job + Prometheus alert rules
+- Real radar-asset loading in the replay canvas
+- Coaching insights page (`/matches/[id]/coaching`)
+- Terraform modules filled out (VPC, RDS, EKS + cert-manager/external-secrets/kube-prometheus-stack/loki)
+- K8s NetworkPolicy, RBAC, External-Secrets, cert-manager ClusterIssuers
+- Steam OpenID sign-in (`/auth/steam/login` + callback, "Sign in with Steam" button)
+- Real-time SSE win-prob stream (`/live/{match_id}/win-prob/sse`)
+- Public API with API keys (`/public/*`, `/api-keys`) + migration `008_add_api_keys`
+- Team overview endpoint + dashboard page
+- k6 baseline load-test script + staging smoke-test + secret rotation script
+
+**Still partial:**
+- Replay: real Valve radar PNGs need to be dropped into `packages/frontend/public/radars/`
+- GNN checkpoints are produced by the training script but not committed — run `python -m src.training.train_strategy_gnn` to populate
+- Terraform has not yet been applied to a real AWS account
 
 ## Project Structure
 

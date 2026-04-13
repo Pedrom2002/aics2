@@ -85,6 +85,14 @@ config:
   corsOrigins: https://app.cs2analytics.example.com
   modelsPath: /var/lib/cs2/models
 
+observability:
+  sentry:
+    # DSNs themselves are sourced from the `cs2-analytics-secrets` ExternalSecret
+    # (keys: SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN). These values control sampling.
+    tracesSampleRate: "0.1"
+    profilesSampleRate: "0.0"
+    frontendTracesSampleRate: "0.1"
+
 secrets:
   # Reference an existing secret rather than committing values here.
   existingSecret: cs2-analytics-secrets

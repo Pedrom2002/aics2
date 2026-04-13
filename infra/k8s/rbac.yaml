@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cs2-backend
+  namespace: cs2-analytics
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cs2-frontend
+  namespace: cs2-analytics
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cs2-celery
+  namespace: cs2-analytics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cs2-backend
+  namespace: cs2-analytics
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cs2-backend
+  namespace: cs2-analytics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cs2-backend
+subjects:
+  - kind: ServiceAccount
+    name: cs2-backend
+    namespace: cs2-analytics

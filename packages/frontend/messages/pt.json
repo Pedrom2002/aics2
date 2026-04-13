@@ -119,5 +119,26 @@
     "title": "Plano de Treino",
     "subtitle": "Roadmap personalizado de melhoria",
     "noPlan": "Sem plano de treino para este jogador."
+  },
+  "archetypes": {
+    "title": "Arquétipo do Jogador",
+    "subtitle": "Descoberto por clustering UMAP+HDBSCAN · {count} jogadores semelhantes",
+    "definingTraits": "Traços distintivos"
+  },
+  "coaching": {
+    "title": "Análise de Coaching",
+    "subtitle": "Erros detetados por ML agrupados por jogador",
+    "noErrors": "Sem erros detetados neste jogo.",
+    "round": "Round",
+    "tick": "Tick",
+    "severity": "Severidade",
+    "jumpToTick": "Ir para replay",
+    "errorTypes": {
+      "overpeek": "Overpeek",
+      "bad_trade": "Trade falhado",
+      "wasted_util": "Utilitário desperdiçado",
+      "poor_positioning": "Posicionamento fraco",
+      "eco_misplay": "Erro de eco"
+    }
   }
 }

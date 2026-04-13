@@ -1,6 +1,8 @@
 global:
   resolve_timeout: 5m
-  slack_api_url: https://hooks.slack.com/services/REPLACE/ME/PLEASE
+  # slack_api_url sourced from the `alertmanager-webhooks` secret at deploy time
+  # via `envsubst` or a templated values.yaml (see external-secrets.yaml).
+  slack_api_url_file: /etc/alertmanager/secrets/slack_webhook_url
 
 route:
   receiver: default
@@ -31,7 +33,7 @@ receivers:
 
   - name: pagerduty
     pagerduty_configs:
-      - service_key: REPLACE_ME
+      - service_key_file: /etc/alertmanager/secrets/pagerduty_service_key
         send_resolved: true
 
 inhibit_rules:

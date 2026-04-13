@@ -119,5 +119,26 @@
     "title": "Training Plan",
     "subtitle": "Personalized improvement roadmap",
     "noPlan": "No training plan available for this player."
+  },
+  "archetypes": {
+    "title": "Player Archetype",
+    "subtitle": "Discovered by UMAP+HDBSCAN clustering · {count} similar players",
+    "definingTraits": "Defining traits"
+  },
+  "coaching": {
+    "title": "Coaching Insights",
+    "subtitle": "ML-detected mistakes grouped by player",
+    "noErrors": "No errors detected in this match.",
+    "round": "Round",
+    "tick": "Tick",
+    "severity": "Severity",
+    "jumpToTick": "Jump to replay",
+    "errorTypes": {
+      "overpeek": "Overpeek",
+      "bad_trade": "Bad trade",
+      "wasted_util": "Wasted utility",
+      "poor_positioning": "Poor positioning",
+      "eco_misplay": "Eco misplay"
+    }
   }
 }

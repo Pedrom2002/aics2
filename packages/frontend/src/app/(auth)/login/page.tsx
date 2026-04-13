@@ -67,6 +67,24 @@ export default function LoginPage() {
           {t('signIn')}
         </Button>
       </form>
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-bg-card px-2 text-text-muted">or</span>
+        </div>
+      </div>
+      <a
+        href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1'}/auth/steam/login`}
+        className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-[#171a21] px-4 py-2 text-sm font-medium text-white hover:bg-[#1b2838]"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+        Sign in with Steam
+      </a>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         {t('noAccount')}{' '}
         <Link href="/register" className="text-primary hover:underline">

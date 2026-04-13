@@ -62,5 +62,10 @@ class Settings(BaseSettings):
     # SSE
     SSE_TIMEOUT_ITERATIONS: int = 120
 
+    # Sentry
+    SENTRY_DSN: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+    SENTRY_PROFILES_SAMPLE_RATE: float = 0.0
+
 
 settings = Settings()

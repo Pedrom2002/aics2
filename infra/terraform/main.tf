@@ -35,14 +35,13 @@ terraform {
     }
   }
 
-  # TODO: configure remote state (S3 + DynamoDB lock, GCS, or Terraform Cloud).
-  # backend "s3" {
-  #   bucket         = "cs2-analytics-tfstate"
-  #   key            = "global/terraform.tfstate"
-  #   region         = "eu-west-1"
-  #   dynamodb_table = "cs2-analytics-tflock"
-  #   encrypt        = true
-  # }
+  backend "s3" {
+    bucket         = "cs2-analytics-tfstate"
+    key            = "global/terraform.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "cs2-analytics-tflock"
+    encrypt        = true
+  }
 }
 
 provider "aws" {

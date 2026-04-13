@@ -162,6 +162,14 @@ async def explain(request: ExplainRequest) -> ExplainResponse:
             detail="ml_models explainability unavailable on this deployment",
         )
 
+    # Record feature values for drift tracking (best-effort, non-blocking)
+    try:
+        from src.services.ml_drift import record_features
+
+        record_features(request.model, request.sample_data)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("drift recording skipped: %s", exc)
+
     try:
         result = _explain_prediction(request.model, request.sample_data)
     except ValueError as e:

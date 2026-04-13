@@ -153,6 +153,7 @@ async def login(db: AsyncSession, email: str, password: str) -> AuthResponse:
 
 async def refresh(db: AsyncSession, refresh_token_value: str) -> TokenResponse:
     from fastapi import HTTPException
+    from sqlalchemy import delete as sa_delete
 
     token_hash = _hash_token(refresh_token_value)
     result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
@@ -167,12 +168,18 @@ async def refresh(db: AsyncSession, refresh_token_value: str) -> TokenResponse:
         await db.delete(token)
         raise HTTPException(status_code=401, detail="Refresh token expired")
 
+    # Atomic rotation: DELETE ... WHERE token_hash=? returns rowcount.
+    # If two requests race, only one sees rowcount==1 — the other 401s.
+    deletion = await db.execute(
+        sa_delete(RefreshToken).where(RefreshToken.token_hash == token_hash)
+    )
+    await db.flush()
+    if deletion.rowcount == 0:
+        raise HTTPException(status_code=401, detail="Refresh token already used")
+
     # Load user
     user_result = await db.execute(select(User).where(User.id == token.user_id))
     user = user_result.scalar_one()
-
-    # Rotate: delete old, create new
-    await db.delete(token)
 
     new_access_token = _create_access_token(user)
     new_refresh_value = _create_refresh_token_value()

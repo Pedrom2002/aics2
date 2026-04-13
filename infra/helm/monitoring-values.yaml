@@ -1,0 +1,71 @@
+# Values for kube-prometheus-stack Helm chart.
+# Deploy with:
+#   helm upgrade --install kube-prometheus-stack \
+#     prometheus-community/kube-prometheus-stack \
+#     -n monitoring --create-namespace -f infra/helm/monitoring-values.yaml
+
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    resources:
+      requests: { cpu: 500m, memory: 2Gi }
+      limits:   { memory: 4Gi }
+    additionalScrapeConfigs:
+      - job_name: cs2-backend
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces: { names: [cs2-analytics] }
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: $1:${1}
+
+alertmanager:
+  alertmanagerSpec:
+    secrets: [alertmanager-webhooks]
+  config:
+    global:
+      resolve_timeout: 5m
+      slack_api_url_file: /etc/alertmanager/secrets/alertmanager-webhooks/slack_webhook_url
+    route:
+      receiver: default
+      group_by: [alertname, severity]
+      routes:
+        - matchers: [severity="critical"]
+          receiver: pagerduty
+        - matchers: [severity="warning"]
+          receiver: slack
+    receivers:
+      - name: default
+        slack_configs:
+          - channel: "#cs2-alerts"
+            send_resolved: true
+      - name: slack
+        slack_configs:
+          - channel: "#cs2-alerts"
+            send_resolved: true
+      - name: pagerduty
+        pagerduty_configs:
+          - service_key_file: /etc/alertmanager/secrets/alertmanager-webhooks/pagerduty_service_key
+
+grafana:
+  adminPassword: "change-me-via-external-secret"
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+  persistence:
+    enabled: true
+    size: 5Gi
+  defaultDashboardsEnabled: true
+
+# Ship the ServiceMonitor for the backend
+additionalPrometheusRulesMap:
+  cs2-analytics-rules:
+    groups: []  # the alert rules live in infra/monitoring/alert-rules.yml, loaded via PrometheusRule CRD

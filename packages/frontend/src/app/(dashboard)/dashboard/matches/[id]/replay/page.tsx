@@ -10,6 +10,22 @@ import type { MatchDetail } from '@/types/demo'
 import { MapCanvas, type PlayerDot } from '@/components/charts/map-canvas'
 import { ReplayerControls } from '@/components/charts/replayer-controls'
 
+interface BackendFrame {
+  t: number
+  tick: number
+  players: { steam_id: string; side: 'T' | 'CT'; x: number; y: number; alive: boolean }[]
+}
+
+interface BackendReplay {
+  match_id: string
+  round: number
+  map: string
+  tickrate: number
+  start_tick: number
+  end_tick: number
+  frames: BackendFrame[]
+}
+
 interface PositionFrame {
   tick: number
   players: PlayerDot[]
@@ -18,6 +34,7 @@ interface PositionFrame {
 interface ReplayPayload {
   match_id: string
   map: string
+  round?: number
   frames: PositionFrame[]
 }
 
@@ -61,6 +78,7 @@ export default function ReplayPage() {
   const [tick, setTick] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
+  const [round, setRound] = useState(1)
 
   const matchQuery = useQuery({
     queryKey: ['match', id, 'detail'],
@@ -69,10 +87,12 @@ export default function ReplayPage() {
   })
 
   const replayQuery = useQuery({
-    queryKey: ['match', id, 'replay-payload'],
+    queryKey: ['match', id, 'replay-frames', round],
     queryFn: async () => {
       try {
-        return await api.get<ReplayPayload>(`/matches/${id}/replay-frames`)
+        return await api.get<BackendReplay>(
+          `/matches/${id}/replay-frames?round=${round}&step=64`,
+        )
       } catch {
         return null
       }
@@ -81,13 +101,44 @@ export default function ReplayPage() {
     retry: false,
   })
 
+  const nameBySteamId = useMemo(() => {
+    const map = new Map<string, string>()
+    matchQuery.data?.player_stats.forEach((p) =>
+      map.set(p.player_steam_id, p.player_name),
+    )
+    return map
+  }, [matchQuery.data])
+
   const payload: ReplayPayload | null = useMemo(() => {
-    if (replayQuery.data) return replayQuery.data
+    if (replayQuery.data) {
+      const back = replayQuery.data
+      return {
+        match_id: back.match_id,
+        map: back.map,
+        round: back.round,
+        frames: back.frames.map((f) => ({
+          tick: f.tick,
+          players: f.players.map((p) => ({
+            steam_id: p.steam_id,
+            name: nameBySteamId.get(p.steam_id) ?? p.steam_id.slice(-6),
+            side: p.side,
+            x: p.x,
+            y: p.y,
+            alive: p.alive,
+          })),
+        })),
+      }
+    }
     if (matchQuery.data) return buildMockReplay(matchQuery.data)
     return null
-  }, [replayQuery.data, matchQuery.data])
+  }, [replayQuery.data, matchQuery.data, nameBySteamId])
 
   const isMock = !replayQuery.data && !!matchQuery.data
+
+  // Reset tick when round changes
+  useEffect(() => {
+    setTick(0)
+  }, [round])
 
   // Playback loop
   useEffect(() => {
@@ -150,6 +201,22 @@ export default function ReplayPage() {
           />
         </div>
         <div className="space-y-3">
+          {matchQuery.data && matchQuery.data.total_rounds > 0 && (
+            <div className="bg-bg-card border border-border rounded-xl p-3 flex items-center gap-2">
+              <span className="text-xs text-text-muted">{t('round')}</span>
+              <select
+                value={round}
+                onChange={(e) => setRound(Number(e.target.value))}
+                className="flex-1 bg-bg-elevated text-sm rounded px-2 py-1 border border-border"
+              >
+                {Array.from({ length: matchQuery.data.total_rounds }, (_, i) => i + 1).map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="bg-bg-card border border-border rounded-xl p-4">
             <ReplayerControls
               isPlaying={playing}

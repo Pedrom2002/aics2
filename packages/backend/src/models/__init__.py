@@ -1,3 +1,4 @@
+from src.models.api_key import ApiKey
 from src.models.base import Base
 from src.models.beta_signup import BetaSignup
 from src.models.demo import Demo, DemoStatus
@@ -21,6 +22,7 @@ from src.models.user import User
 from src.models.win_prob_impact import WinProbImpact
 
 __all__ = [
+    "ApiKey",
     "Base",
     "BetaSignup",
     "Demo",

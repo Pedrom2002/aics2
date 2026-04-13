@@ -1,6 +1,18 @@
+import sentry_sdk
 from celery import Celery
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 from src.config import settings
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.ENVIRONMENT,
+        release=settings.APP_VERSION,
+        traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+        send_default_pii=False,
+        integrations=[CeleryIntegration(monitor_beat_tasks=True)],
+    )
 
 celery_app = Celery(
     "cs2-analytics",
@@ -29,6 +41,10 @@ celery_app.conf.update(
         "ingest-pro-demos-faceit": {
             "task": "src.tasks.pro_ingestion.ingest_faceit",
             "schedule": 1800.0,  # every 30 minutes
+        },
+        "ml-drift-daily": {
+            "task": "src.tasks.ml_drift.compute_drift",
+            "schedule": 86400.0,  # daily
         },
     },
 )

@@ -189,8 +189,24 @@ async def stripe_webhook(
         logger.warning("Stripe webhook signature verification failed: %s", exc)
         raise HTTPException(status_code=400, detail="Invalid webhook signature") from exc
 
+    event_id = event.get("id", "")
     event_type = event.get("type", "")
     data = event.get("data", {}).get("object", {}) or {}
+
+    # Idempotency: dedup by Stripe event id via Redis (24h TTL).
+    if event_id:
+        try:
+            from redis.asyncio import Redis
+
+            redis_client = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+            key = f"stripe:event:{event_id}"
+            was_set = await redis_client.set(key, "1", nx=True, ex=86400)
+            await redis_client.close()
+            if not was_set:
+                logger.info("Stripe event %s already processed — skipping", event_id)
+                return {"status": "duplicate", "event": event_type}
+        except Exception as exc:  # noqa: BLE001 — dedup is best-effort
+            logger.warning("Idempotency check failed (continuing): %s", exc)
 
     try:
         if event_type == "checkout.session.completed":

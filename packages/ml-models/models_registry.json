@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-04-11",
+  "updated_at": "2026-04-13",
   "models": [
     {
       "name": "win_prob",
@@ -128,19 +128,20 @@
       "version": "v1",
       "framework": "pytorch+graphsage",
       "task": "classification",
-      "path": "checkpoints/strategy_gnn.pt",
+      "path": "checkpoints/strategy_gnn/",
       "metrics": {
-        "accuracy": null,
-        "note": "model architecture defined; weights not trained, deterministic heuristic fallback active"
+        "note": "Weak-supervision pipeline (heuristic-labelled). Run `python -m src.training.train_strategy_gnn` to populate checkpoints."
       },
       "features": [
         "x", "y", "z", "health", "armor", "side", "equip_value",
         "is_scoped", "is_walking", "weapon_primary", "weapon_secondary",
         "has_bomb", "has_defuser", "flashed", "alive", "stamina"
       ],
-      "training_script": null,
+      "labels_t": ["execute", "fake", "default", "eco", "force", "save"],
+      "labels_ct": ["stack", "aggressive", "default", "retake", "save"],
+      "training_script": "packages/ml-models/src/training/train_strategy_gnn.py",
       "trained_at": null,
-      "description": "GraphSAGE strategy classifier (5-node team graph). Untrained — predict_strategy() falls back to deterministic heuristic over economy/time/bomb state."
+      "description": "GraphSAGE strategy classifier (5-node team graph). Trained via weak supervision against the deterministic heuristic; falls back to heuristic when no checkpoint is present."
     }
   ]
 }

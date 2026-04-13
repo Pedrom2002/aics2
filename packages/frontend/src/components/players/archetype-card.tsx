@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api-client'
 
@@ -23,6 +24,7 @@ interface ArchetypeCardProps {
 }
 
 export function ArchetypeCard({ steamId }: ArchetypeCardProps) {
+  const t = useTranslations('archetypes')
   const [data, setData] = useState<PlayerArchetype | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -58,17 +60,17 @@ export function ArchetypeCard({ steamId }: ArchetypeCardProps) {
     <div className="bg-bg-card border border-border rounded-xl p-6">
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-bold">Player Archetype</h3>
+        <h3 className="text-lg font-bold">{t('title')}</h3>
       </div>
       <p className="text-2xl font-bold text-primary mb-1">{data.archetype}</p>
       <p className="text-xs text-text-dim mb-4">
-        Discovered by UMAP+HDBSCAN clustering · {data.size} similar players
+        {t('subtitle', { count: data.size })}
       </p>
 
       {data.top_features.length > 0 && (
         <>
           <p className="text-xs font-medium text-text-muted uppercase mb-2">
-            Defining traits
+            {t('definingTraits')}
           </p>
           <div className="space-y-2">
             {data.top_features.slice(0, 5).map((f) => {

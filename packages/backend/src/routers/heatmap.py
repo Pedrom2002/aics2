@@ -44,3 +44,25 @@ async def match_replay(
     if result is None:
         raise HTTPException(status_code=404, detail="Match not found")
     return result
+
+
+@router.get("/matches/{match_id}/replay-frames")
+async def match_replay_frames(
+    match_id: str,
+    round_num: int = Query(..., alias="round", ge=1),
+    tick_step: int = Query(64, ge=8, le=256, alias="step"),
+    session: AsyncSession = Depends(get_db),
+):
+    """Return a sequence of player-position frames for a round.
+
+    Synthesizes frames by sampling stored heatmap positions across the
+    round's tick range — good enough to drive the 2D replay canvas
+    without ClickHouse tick-level storage. Each frame has a normalized
+    timestamp ``t`` in [0,1] and a list of players at that moment.
+    """
+    from src.services.heatmap_service import get_replay_frames
+
+    frames = await get_replay_frames(session, match_id, round_num, tick_step=tick_step)
+    if frames is None:
+        raise HTTPException(status_code=404, detail="Match or round not found")
+    return frames

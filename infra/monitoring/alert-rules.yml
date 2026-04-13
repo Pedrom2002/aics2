@@ -95,3 +95,22 @@ groups:
           severity: warning
         annotations:
           summary: "Redis memory >90%"
+
+  - name: cs2-ml
+    rules:
+      - alert: MLFeatureDrift
+        expr: ml_feature_drift > 0.3
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "ML feature drift on {{ $labels.model }}/{{ $labels.feature }}"
+          description: "Live distribution of {{ $labels.feature }} has drifted from baseline (score {{ $value }})."
+
+      - alert: MLFeatureDriftCritical
+        expr: ml_feature_drift > 0.6
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Severe ML feature drift on {{ $labels.model }}/{{ $labels.feature }}"
