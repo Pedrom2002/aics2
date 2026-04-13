@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING
+from datetime import datetime  # noqa: TC003 — required at runtime by SQLAlchemy Mapped[]
 
 from sqlalchemy import ARRAY, JSON, DateTime, ForeignKey, Integer, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.models.base import Base
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 class ApiKey(Base):
